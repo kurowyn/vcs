@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/radeshu/vcm/debug/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
