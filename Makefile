@@ -1,5 +1,5 @@
-BIN=../bin/vcs
-SRC=main.cpp
+BIN=./bin/vcs
+SRC=./src/main.cpp
 FLAGS=-g -std=c++23
 CC=g++
 build: main.cpp
