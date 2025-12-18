@@ -1,6 +1,13 @@
+#pragma once
+
 #include <string>
 
-enum BuildingClass { HOUSE = 1, FACTORY, PARK };
+enum BuildingClass { UNKNOWN = 1, HOUSE, FACTORY, PARK };
+
+struct Vector2D {
+    float x;
+    float y;
+};
 
 class BuildingMetaData {
    public:
@@ -10,21 +17,13 @@ class BuildingMetaData {
     BuildingMetaData(BuildingClass className, Vector2D size)
         : className(className), size(size) {};
 
-    ~BuildingMetaData();
+    ~BuildingMetaData() {};
 };
-
-BuildingMetaData::~BuildingMetaData() {}
-
-struct Vector2D {
-    float x;
-    float y;
-};
-
 /**
- * Simple axis-alignement bounding boxes (AABB) object collision detection between two
- * rectangles. Each rectangle is defined by its position (top-left corner) and
- * size (x: width and y:height)
- * 
+ * Simple axis-alignement bounding boxes (AABB) object collision detection
+ * between two rectangles. Each rectangle is defined by its position (top-left
+ * corner) and size (x: width and y:height)
+ *
  * needed for building placement validation, buildings should not overlap.
  *
  * @returns true if the rectangles are colliding, false otherwise.
@@ -33,10 +32,10 @@ struct Vector2D {
  * |     ____|______
  * |____|____|      |
  *      |___________|
- * 
+ *
  */
-bool areColliding(Vector2D xPos, Vector2D xSize, Vector2D yPos,
-                  Vector2D ySize) {
+static bool areColliding(Vector2D xPos, Vector2D xSize, Vector2D yPos,
+                         Vector2D ySize) {
     bool collidingX = xPos.x < yPos.x + ySize.x && xPos.x + xSize.x > yPos.x;
     if (!collidingX) return false;  //* micro optimization :P
 
