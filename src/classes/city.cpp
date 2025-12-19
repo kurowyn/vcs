@@ -6,12 +6,16 @@
 #include "./buildings/house/house.hpp"
 #include "./buildings/park/park.hpp"
 
-City::City() {}
+City::City(string name) : name(name) {}
 
 City::~City() {}
 
+void City::tick(int deltaTime) {
+    // Placeholder for future implementation
+}
+
 void City::add_building(string name, BuildingClass buildingType) {
-    int id = this->idCount++;
+    int id = this->buildingIdCount++;
     switch (buildingType) {
         case BuildingClass::HOUSE:
             this->buildings[id] = new House(id, name);

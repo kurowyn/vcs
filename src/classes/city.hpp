@@ -8,13 +8,15 @@ using namespace std;
 
 class City {
    private:
-    int idCount = 1;
+    int buildingIdCount = 1;
     unordered_map<int, Base_Building*> buildings;
 
    public:
-    City();
+    string name;
+    City(string name);
+
     ~City();
 
     void add_building(string name, BuildingClass building);
-    void remove_building();
+    void tick(int deltaTime);
 };
