@@ -31,3 +31,12 @@ void City::add_building(string name, BuildingClass buildingType) {
             break;
     }
 }
+
+void City::remove_building(int id) {
+    auto it = this->buildings.find(id);
+    if (it != this->buildings.end()) {
+        delete it->second;
+        this->buildings.erase(it);
+    } else
+        std::cerr << "Building with ID " << id << " not found!" << std::endl;
+}

@@ -27,7 +27,7 @@ auto main(int argc, char** argv) -> int {
         City* runningCity = sim.get_running_city();
 
         if (runningCity == nullptr) {
-            std::cerr << "No running city selected. Exiting." << std::endl;
+            std::cerr << "No running city selected." << std::endl;
             return 1;
         }
 

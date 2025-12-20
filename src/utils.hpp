@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 enum BuildingClass { UNKNOWN = 1, HOUSE, FACTORY, PARK };
 
@@ -19,6 +20,13 @@ class BuildingMetaData {
 
     ~BuildingMetaData() {};
 };
+
+static unordered_map<BuildingClass, BuildingMetaData> BuildingMetaDatabase = {
+    {BuildingClass::HOUSE, BuildingMetaData(HOUSE, {1.0f, 1.0f})},
+    {BuildingClass::FACTORY, BuildingMetaData(FACTORY, {2.0f, 2.0f})},
+    {BuildingClass::PARK, BuildingMetaData(PARK, {1.5f, 1.5f})},
+};
+
 /**
  * Simple axis-alignement bounding boxes (AABB) object collision detection
  * between two rectangles. Each rectangle is defined by its position (top-left
