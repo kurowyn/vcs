@@ -1,7 +1,11 @@
-#include <print>
+// As it stands, this thing uses around 3MBs of memory.
+// Embarassing.
+
 #include "building.hpp"
 
-auto main(int argc, char **argv) -> int {
-    std::println("Hello, world!");
+int main(void) {
+    // OK, now for the hardest part.
+    // Placing a building on a gui.
+    // Well, it's easy enough.
     return 0;
 }

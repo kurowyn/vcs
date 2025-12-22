@@ -1,0 +1,6 @@
+Tonight's goals:
+- Generate a map that has the capacity for M x N rectangles (M: number of rows; N: columns)
+Each rectangle is a "plus" sign - you can add a building there.
+- Add buttons that allow you to either add or remove a building.
+- Save progress.
+I think that'd be enough for tonight.

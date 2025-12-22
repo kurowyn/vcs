@@ -1,0 +1,15 @@
+So, what do we really wanna make?
+Just some game, I guess. But what do we really mean by that?
+Some city simulator. But what does that mean, really?
+I suppose a game that simulates a city. But really, what do we mean by that?
+You're given some resources (or even none at all), and you build a building using them.
+Each building requires different resources. Each building also consumes a different type of
+resources over time.
+
+So, here's some functionalities: 
+- an inventory system.
+- placing buildings.
+- calculating city satisfaction rate.
+- map
+I guess that's enough for now.
+Let's get to work.
