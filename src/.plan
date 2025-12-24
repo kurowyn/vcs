@@ -1,15 +1,21 @@
-So, what do we really wanna make?
-Just some game, I guess. But what do we really mean by that?
-Some city simulator. But what does that mean, really?
-I suppose a game that simulates a city. But really, what do we mean by that?
-You're given some resources (or even none at all), and you build a building using them.
-Each building requires different resources. Each building also consumes a different type of
-resources over time.
+Now that we've got the most important stuff out of the way, let's do the following:
+State management.
+Note: pressing ESC once cancels the state.
 
-So, here's some functionalities: 
-- an inventory system.
-- placing buildings.
-- calculating city satisfaction rate.
-- map
-I guess that's enough for now.
-Let's get to work.
+Press on the + button.
+Available squares now have a plus on them.
+Select which type of building you want (menu).
+Click on the available squares.
+Case 1:
+    you can place a building.
+    sub-case-1:
+        there is already a building.
+        ask if the player wants to override. 
+        if so, override it.
+    sub-case-2:
+        just place the building.
+Case 2:
+    you can't place a building. 
+    draw an X, and make a sound when trying to forcibly place.
+for now, you can place a building anywhere.
+I need to recharge my Chakra.
