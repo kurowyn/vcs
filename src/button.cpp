@@ -1,3 +1,6 @@
+// As it stands, this code uses an insane amount of GPU.
+// This is probably because Box.IsHovered() and Box.IsClicked() are being called
+// at every single draw call. Any suggestions are welcome.
 #include <raylib.h>
 #include <functional>
 #include <print>
