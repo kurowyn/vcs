@@ -17,6 +17,12 @@ Color GetRandomSolidColor(void) {
             (unsigned char)0xff};
 }
 
+enum class Mode {
+    ADD,
+    REMOVE,
+    VIEW,
+};
+
 
 namespace Asset {
     #define ASSET_PATH "../assets/"
@@ -61,12 +67,13 @@ class Game {
         constexpr static auto GAME_TITLE {"vcs - a minimal city simulator"};
         constexpr static auto DEFAULT_FPS {120};
         constexpr static Color DEFAULT_COLOR {17, 63, 42, 255};
-        std::vector<std::tuple<Rectangle, Texture2D&>> m_building_boxes {};
-        std::vector<std::tuple<Rectangle, Texture2D&>> m_buttons {};
+        std::vector<std::tuple<Rectangle, Texture2D&, Color>> m_building_boxes {};
         std::vector<std::tuple<Rectangle, Texture2D&>> m_map {};
+        std::vector<std::tuple<Mode, Rectangle, Texture2D&, Color>> m_buttons {};
         Vector2 m_lower_bound {};
         Vector2 m_upper_bound {};
         Camera2D m_camera {};
+        Mode m_mode;
         float m_camera_move_speed {};
         float m_width {};
         float m_height {};
@@ -77,6 +84,7 @@ class Game {
             m_camera_move_speed = 5.0f;
             m_camera = {Vector2(0, 0), Vector2(0, 0), 0.0f, 1.0f};
             m_lower_bound = Vector2(0.0f, 0.0f);
+            m_mode = Mode::VIEW;
         }
 
         Game(int width, int height): Game((float)width, (float)height) {}
@@ -98,24 +106,30 @@ class Game {
                                         (Asset::BOX_HEIGHT + Asset::BOX_PADDING),
                                    .width = Asset::BOX_WIDTH,
                                    .height = Asset::BOX_HEIGHT};
-                    m_building_boxes.emplace_back(box, Asset::EMPTY_TEXTURE);
+                    m_building_boxes.emplace_back(box, Asset::EMPTY_TEXTURE, BLANK);
                 }
             }
-            m_buttons.emplace_back(Rectangle(m_width - Asset::BUTTON_WIDTH - 10,
+            m_buttons.emplace_back(Mode::ADD,
+                                   Rectangle(m_width - Asset::BUTTON_WIDTH - 10,
                                              m_height - 3 * Asset::BUTTON_HEIGHT - 30, 
                                              Asset::BUTTON_WIDTH,
                                              Asset::BUTTON_HEIGHT),
-                                   Asset::ADD_BUTTON);
-            m_buttons.emplace_back(Rectangle(m_width - Asset::BUTTON_WIDTH - 10,
+                                   Asset::ADD_BUTTON,
+                                   BLANK);
+            m_buttons.emplace_back(Mode::REMOVE,
+                                   Rectangle(m_width - Asset::BUTTON_WIDTH - 10,
                                              m_height - 2 * Asset::BUTTON_HEIGHT - 20, 
                                              Asset::BUTTON_WIDTH,
                                              Asset::BUTTON_HEIGHT),
-                                   Asset::REMOVE_BUTTON);
-            m_buttons.emplace_back(Rectangle(m_width - Asset::BUTTON_WIDTH - 10,
+                                   Asset::REMOVE_BUTTON,
+                                   BLANK);
+            m_buttons.emplace_back(Mode::VIEW,
+                                   Rectangle(m_width - Asset::BUTTON_WIDTH - 10,
                                              m_height - Asset::BUTTON_HEIGHT - 10, 
                                              Asset::BUTTON_WIDTH,
                                              Asset::BUTTON_HEIGHT),
-                                   Asset::VIEW_BUTTON);
+                                   Asset::VIEW_BUTTON,
+                                   BLANK);
         }
 
         inline int InitGame(void) {
@@ -214,6 +228,17 @@ class Game {
             } 
         }
 
+        char* ResolveMode(Mode mode) {
+            switch (mode) {
+                case Mode::ADD:
+                    return "Add";
+                case Mode::REMOVE:
+                    return "Remove";
+                case Mode::VIEW:
+                    return "View";
+            }
+        }
+
         inline void RegulateCamera(Vector2 lower_bound, Vector2 upper_bound) {
             if (m_camera.target.x >= upper_bound.x) {
                 m_camera.target.x = upper_bound.x;
@@ -233,31 +258,43 @@ class Game {
         }
 
         inline void DrawCall(void) {
+            auto real_mouse_position {GetMousePosition()};
+            auto relative_mouse_position {GetScreenToWorld2D(real_mouse_position, m_camera)};
+
             RegulateCamera(m_lower_bound, m_upper_bound);
             BeginDrawing();
-
+            ClearBackground(DEFAULT_COLOR);
             DrawFPS(0, 0);
 
             BeginMode2D(m_camera);
-            ClearBackground(DEFAULT_COLOR);
             for (const auto& [rectangle, texture]: m_map) {
                 DrawTexture(texture, rectangle.x, rectangle.y, Color(255, 255, 255, 200));
             }
-            for (const auto& [rectangle, texture]: m_building_boxes) {
-                auto relative_mouse_position {GetScreenToWorld2D(GetMousePosition(), m_camera)};
+            for (auto& [rectangle, texture, color]: m_building_boxes) {
+                color = CheckCollisionPointRec(relative_mouse_position, rectangle) ?
+                        Fade(WHITE, 0.25f) : BLANK;
                 if (texture.id == Asset::EMPTY_TEXTURE_ID) {
-                    DrawRectangleRec(rectangle, 
-                                     CheckCollisionPointRec(relative_mouse_position, rectangle) ?
-                                     Fade(WHITE, 0.25f) : BLANK);
+                    DrawRectangleRec(rectangle, color);
                 } else {
-                    DrawTexture(texture, rectangle.x, rectangle.y, WHITE);
+                    DrawTexture(texture, rectangle.x, rectangle.y, color);
                 }
             }
             EndMode2D();
 
-            for (const auto& [rectangle, texture]: m_buttons) {
-                DrawTexture(texture, rectangle.x, rectangle.y, WHITE);
+            for (auto& [mode, rectangle, texture, color]: m_buttons) {
+                auto in_button {CheckCollisionPointRec(real_mouse_position, rectangle)};
+                color = in_button ?  SKYBLUE : WHITE;
+                if (in_button && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                    m_mode = mode;
+                }
+                DrawTexture(texture, rectangle.x, rectangle.y, color);
             }
+
+            DrawText(TextFormat("Mode: %s", ResolveMode(m_mode)),
+                     10,
+                     10,
+                     30,
+                     PURPLE);
 
             EndDrawing();
         }
