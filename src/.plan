@@ -1,21 +1,5 @@
-Now that we've got the most important stuff out of the way, let's do the following:
-State management.
-Note: pressing ESC once cancels the state.
+Functionality to implement:
 
-Press on the + button.
-Available squares now have a plus on them.
-Select which type of building you want (menu).
-Click on the available squares.
-Case 1:
-    you can place a building.
-    sub-case-1:
-        there is already a building.
-        ask if the player wants to override. 
-        if so, override it.
-    sub-case-2:
-        just place the building.
-Case 2:
-    you can't place a building. 
-    draw an X, and make a sound when trying to forcibly place.
-for now, you can place a building anywhere.
-I need to recharge my Chakra.
+- menu to select which building to place when pressing the add button.
+You don't have to select which building to place every time. Only once is enough.
+But if you want to change it anyway, just click on the plus again.

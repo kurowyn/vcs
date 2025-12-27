@@ -1,5 +1,6 @@
 BIN=../bin/vcs.exe
-SRC=../src/button.cpp
+SRC= ../src/data/building.cpp ../src/gui/gui.cpp ../src/gui/asset.cpp ../src/gui/box.cpp ../src/gui/main.cpp
+#SRC= ../src/gui/menu.cpp ../src/gui/box.cpp
 FLAGS=-g -std=c++23 -Wunused
 LIBS=-I include -L lib -lraylib -lgdi32 -lwinmm -lstdc++exp
 CC=/mnt/c/w64devkit/bin/g++.exe 
