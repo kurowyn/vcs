@@ -2,28 +2,16 @@
 
 #include <string>
 
-#include "../../../utils.hpp"
-#include "../base-building.hpp"
+#include "classes/buildings/base-building.hpp"
+#include "utils/utils.hpp"
 
 using namespace std;
 
 class Factory : public Base_Building {
    private:
-    // productionRessources et pollution.
-    int waterProduction = 10;
-    int powerProduction = 10;
-
-    int pollution = 5;
-
    public:
-    const BuildingClass buildingClass = BuildingClass::FACTORY;
+    const EBuildingClass buildingClass = EBuildingClass::FACTORY;
 
-    Factory(int id, string name);
+    Factory(int id, string name, Vector2D position);
     ~Factory();
-
-    void impact_city(City* city) override {
-        // produireRessources() et calculerPollution().
-        cout << "producing " << pollution << "generating " << waterProduction
-             << " water and " << powerProduction << " power" << endl;
-    }
 };

@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#include "./classes/simulation.hpp"
+#include "classes/simulation.hpp"
 
 int tickSpeed = 1000;  // every tickSpeed milliseconds
 

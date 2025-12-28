@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
 
-#include "../../../utils.hpp"
-#include "../base-building.hpp"
+#include "utils/utils.hpp"
+#include "classes/buildings/base-building.hpp"
 
 using namespace std;
 
@@ -13,13 +13,13 @@ class House : public Base_Building {
     int currentOccupants = 0;
 
    public:
-    const BuildingClass buildingClass = BuildingClass::HOUSE;
+    const EBuildingClass buildingClass = EBuildingClass::HOUSE;
 
-    House(int id, string name);
+    House(int id, string name, Vector2D position);
     ~House();
 
     // ajouterHabitants(nb) et retirerHabitants(nb).
-    bool add_occupants(int nb) {
+    bool add_occupants_if_possible(int nb) {
         if (currentOccupants + nb > maxOccupants) return false;
 
         currentOccupants += nb;

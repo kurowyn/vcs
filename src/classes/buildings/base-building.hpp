@@ -1,9 +1,9 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
-#include "../../city.hpp"
-#include "../../utils.hpp"
+#include "utils/utils.hpp"
 
 using namespace std;
 
@@ -12,15 +12,15 @@ class Base_Building {
     int id;
     string name;
 
-    // impact value per second
-    int satisfactionEffect = 0;
-    int waterConsumption = 0;
-    int powerConsumption = 0;
+   protected:
+    unordered_map<EBuildingEffect, int> effects;
+    unordered_map<EBuildingResource, int> resources;
 
    public:
-    const BuildingClass buildingClass = BuildingClass::UNKNOWN;
+    const EBuildingClass buildingClass = EBuildingClass::UNKNOWN;
+    const Vector2D position;
 
-    Base_Building(int id, string name);
+    Base_Building(int id, string name, Vector2D position);
 
     ~Base_Building();
 
@@ -31,8 +31,11 @@ class Base_Building {
     }
 
    protected:
-    virtual void impact_city(City* city) {
-        // Placeholder for impacting city stats
-        cout << "Impacting city with building ID: " << id << endl;
-    }
+    void set_effect(EBuildingEffect effect, int value);
+
+    void set_resource(EBuildingResource resource, int value);
+
+   public:
+    int get_effect(EBuildingEffect effect);
+    int get_resource(EBuildingResource resource);
 };

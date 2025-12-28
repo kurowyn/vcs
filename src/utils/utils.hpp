@@ -1,9 +1,10 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <unordered_map>
 
-enum BuildingClass { UNKNOWN = 1, HOUSE, FACTORY, PARK };
+#include "data/enums.hpp"
 
 struct Vector2D {
     float x;
@@ -13,31 +14,34 @@ struct Vector2D {
 class BuildingMetaData {
    public:
     Vector2D size;
-    BuildingClass className;
+    EBuildingClass className;
 
-    BuildingMetaData(BuildingClass className, Vector2D size)
+    BuildingMetaData(EBuildingClass className, Vector2D size)
         : className(className), size(size) {};
 
     ~BuildingMetaData() {};
 };
 
-static unordered_map<BuildingClass, BuildingMetaData> BuildingMetaDatabase = {
-    {BuildingClass::HOUSE, BuildingMetaData(HOUSE, {1.0f, 1.0f})},
-    {BuildingClass::FACTORY, BuildingMetaData(FACTORY, {2.0f, 2.0f})},
-    {BuildingClass::PARK, BuildingMetaData(PARK, {1.5f, 1.5f})},
-};
+namespace BuildingMetaDict {
+extern BuildingMetaData* HOUSE  ;
+extern BuildingMetaData* FACTORY;
+extern BuildingMetaData* PARK;
+BuildingMetaData getMetaFromEnum(EBuildingClass className);
+
+}  // namespace BuildingMetaDict
 
 /**
- * Simple axis-alignement bounding boxes (AABB) object collision detection
+ * Simple axis-alignment bounding boxes (AA`BB) object collision detection
  * between two rectangles. Each rectangle is defined by its position (top-left
  * corner) and size (x: width and y:height)
  *
- * needed for building placement validation, buildings should not overlap.
+ * needed for building placement validation, buildings should not overlap
+ * (in case a building takes more than one tile).
  *
  * @returns true if the rectangles are colliding, false otherwise.
  *  __________
  * |         |
- * |     ____|______
+ * |     ____|______    ---> areColliding = true
  * |____|____|      |
  *      |___________|
  *

@@ -1,17 +1,13 @@
 #pragma once
 
-#include "../../../utils.hpp"
-#include "../base-building.hpp"
+#include "utils/utils.hpp"
+#include "classes/buildings/base-building.hpp"
 
 class Park : public Base_Building {
    private:
-    const BuildingClass buildingClass = BuildingClass::PARK;
-
-    int satisfactionEffect = 5;
+    const EBuildingClass buildingClass = EBuildingClass::PARK;
 
    public:
-    Park(int id, string name);
+    Park(int id, string name, Vector2D position);
     ~Park();
-
-    void upgrade_satisfaction() {};
 };

@@ -1,4 +1,4 @@
-#include "./simulation.hpp"
+#include "classes/simulation.hpp"
 
 Simulation::Simulation() {}
 

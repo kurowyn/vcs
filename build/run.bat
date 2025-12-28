@@ -13,7 +13,7 @@ set FILES=
     )
 
 echo running build
-g++ -std=c++17 %FILES% -o "app.exe"
+g++ -std=c++17 %FILES%  -I"%SRC_DIR%" -o "app.exe"
 
 if %errorlevel% equ 0 (
     echo ======
