@@ -12,8 +12,7 @@ bool Box::IsHovered(Vector2 mouse_position) {
     return CheckCollisionPointRec(mouse_position, m_rectangle);
 }
 
-void Box::Draw(Vector2 mouse_position, 
-               MouseButton mouse_button) {
+void Box::Draw(Vector2 mouse_position) {
     Color color {};
 
     if (!m_is_hoverable) {

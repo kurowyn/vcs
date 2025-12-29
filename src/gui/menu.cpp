@@ -1,66 +1,125 @@
 #include "box.hpp"
-#include <raylib.h>
+#include <map>
+#include <utility>
+#include <print>
 #include <array>
+#include <raylib.h>
+
+enum class Mode {
+    SELECT_BUILDING_TO_ADD = 1,
+    SELECT_SQUARE_TO_ADD_TO,
+    SELECT_SQUARE_TO_REMOVE_FROM,
+    SELECT_SQUARE_TO_VIEW,
+};
+
 
 int main(void) {
-    InitWindow(1280, 720, "Menu");
+    const auto WIDTH {1366};
+    const auto HEIGHT {768};
+    const auto PADDING {10};
 
-    SetTargetFPS(60);
+    auto mode {Mode::SELECT_SQUARE_TO_VIEW};
+    char* building_selected {"None"};
 
-    auto t1 {LoadTexture("../assets/house_assets/house_1.png")};
-    auto t2 {LoadTexture("../assets/factory_assets/factory_1.png")};
-    auto t3 {LoadTexture("../assets/park_assets/park_1.png")};
+    InitWindow(WIDTH, HEIGHT, "Demo");
 
-    std::array<Box, 3> choices {Box{.m_texture = t1,
-                                    .m_rectangle = Rectangle(0, 
-                                                             0, 
-                                                             t1.width, 
-                                                             t1.height),
-                                    .m_is_hoverable = true,
-                                    .m_hovered_color = Fade(BLACK, 0.95f),
-                                    .m_unhovered_color = WHITE},
-                                Box{.m_texture = t2,
-                                    .m_rectangle = Rectangle(t1.width + 10, 
-                                                             0, 
-                                                             t2.width, 
-                                                             t2.height),
-                                    .m_is_hoverable = true,
-                                    .m_hovered_color = Fade(BLACK, 0.95f),
-                                    .m_unhovered_color = WHITE},
-                                Box{.m_texture = t3,
-                                    .m_rectangle = Rectangle(2 * t2.width + 20, 
-                                                             0, 
-                                                             t3.width, 
-                                                             t3.height),
-                                    .m_is_hoverable = true,
-                                    .m_hovered_color = Fade(BLACK, 0.95f),
-                                    .m_unhovered_color = WHITE}};
+    SetTargetFPS(120);
 
-    unsigned int choice {0};
+    std::array images {LoadImage("../assets/button_assets/neon_view_button.png"),
+                       LoadImage("../assets/button_assets/neon_remove_button.png"),
+                       LoadImage("../assets/button_assets/neon_add_button.png"),
+                       LoadImage("../assets/house_assets/house_1.png"),
+                       LoadImage("../assets/factory_assets/factory_1.png"),
+                       LoadImage("../assets/park_assets/park_1.png")};
+
+    const std::array<const char*, 6> BUTTON_NAMES {"View", "Remove", "Add", "House", "Factory", "Park"};
+
+    std::map<const char*, Box> boxes {};
+
+    for (auto& image: images) {
+        ImageAlphaCrop(&image, 0.0f);
+        ImageResizeNN(&image, 50, image.height * 50 / image.width);
+    }
+
+    for (auto row {0}; row < 6; ++row) {
+        static Vector2 position {WIDTH - images[row].width - PADDING, HEIGHT};
+        position.y -= PADDING + images[row].height;
+        boxes[BUTTON_NAMES[row]] = Box()
+                                   .with_texture(LoadTextureFromImage(images[row]))
+                                   .with_rectangle(Rectangle(position.x
+                                                             position.y,
+                                                             images[row].width,
+                                                             images[row].height))
+                                   .with_is_hoverable(true)
+                                   .with_hovered_color(SKYBLUE)
+                                   .with_unhovered_color(WHITE);
+    }
+
+    boxes["House"].m_unhovered_color = boxes["Factory"].m_unhovered_color = boxes["Park"].m_unhovered_color = BLANK;
+    boxes["House"].m_hovered_color = boxes["Factory"].m_hovered_color = boxes["Park"].m_hovered_color = BLANK;
+
     while (!WindowShouldClose()) {
         auto mouse_position {GetMousePosition()};
+        auto mouse_wheel {GetMouseWheelMove()};
+
+        if (boxes["Add"].IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
+            if (mode != Mode::SELECT_SQUARE_TO_ADD_TO) {
+                boxes["House"].m_unhovered_color = 
+                boxes["Factory"].m_unhovered_color =
+                boxes["Park"].m_unhovered_color = Fade(WHITE, 0.25f);
+
+                boxes["House"].m_hovered_color =
+                boxes["Factory"].m_hovered_color =
+                boxes["Park"].m_hovered_color = WHITE;
+
+                mode = Mode::SELECT_BUILDING_TO_ADD;
+            }
+        } else if (boxes["Remove"].IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
+            boxes["House"].m_unhovered_color = boxes["Factory"].m_unhovered_color = boxes["Park"].m_unhovered_color = BLANK;
+            boxes["House"].m_hovered_color = boxes["Factory"].m_hovered_color = boxes["Park"].m_hovered_color = BLANK;
+            mode = Mode::SELECT_SQUARE_TO_REMOVE_FROM;
+        } else if (boxes["View"].IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
+            boxes["House"].m_unhovered_color = boxes["Factory"].m_unhovered_color = boxes["Park"].m_unhovered_color = BLANK;
+            boxes["House"].m_hovered_color = boxes["Factory"].m_hovered_color = boxes["Park"].m_hovered_color = BLANK;
+            mode = Mode::SELECT_SQUARE_TO_VIEW;
+        } 
+
+        for (auto& [role, box]: boxes) {
+            if (role == "House" || role == "Factory" || role == "Park") {
+                if (box.IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
+                    mode = Mode::SELECT_SQUARE_TO_ADD_TO;
+
+                    boxes["House"].m_unhovered_color = Fade(WHITE, 0.25f);
+                    boxes["Factory"].m_unhovered_color = Fade(WHITE, 0.25f);
+                    boxes["Park"].m_unhovered_color = Fade(WHITE, 0.25f);
+                    box.m_unhovered_color = WHITE;
+
+                    building_selected = const_cast<char*>(role);
+                }
+            }
+        }
 
         BeginDrawing();
 
-        ClearBackground(WHITE);
+        ClearBackground(DARKBROWN);
+        for (auto& [role, box]: boxes) {
+            box.Draw(mouse_position);
+        }
 
-        DrawText("Choose A Building To Place!", 
-                 300,
-                 100,
-                 30,
-                 PURPLE);
-
-        DrawText(TextFormat("Choice: %i", choice),
-                 300,
-                 150,
-                 30,
-                 PURPLE);
-
-        for (auto& box: choices) {
-            box.Draw(mouse_position, MOUSE_BUTTON_LEFT);
-            if (box.IsClicked(mouse_position, MOUSE_BUTTON_LEFT)) {
-                choice = box.m_texture.id;
-            }
+        switch (mode) {
+            case Mode::SELECT_BUILDING_TO_ADD:
+                DrawText("SELECT A BUILDING TO ADD!", 0, 0, 30, WHITE);
+                break;
+            case Mode::SELECT_SQUARE_TO_ADD_TO:
+                DrawText(TextFormat("YOU SELECTED: %s", building_selected), 0, 0, 30, WHITE);
+                DrawText("SELECT A SQUARE TO PLACE THE BUILDING ON!", 0, 50, 30, WHITE);
+                break;
+            case Mode::SELECT_SQUARE_TO_REMOVE_FROM:
+                DrawText("SELECT A BUILDING TO REMOVE!", 0, 0, 30, WHITE);
+                break;
+            case Mode::SELECT_SQUARE_TO_VIEW:
+                DrawText("SELECT A BUILDING TO VIEW!", 0, 0, 30, WHITE);
+                break;
         }
 
         EndDrawing();

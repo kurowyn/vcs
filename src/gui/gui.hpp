@@ -10,15 +10,11 @@
 
 #define ASSET_PATH "../assets/"
 
-void fodder(Building b);
-
 enum class Mode {
-    ADD,
-    ADD_MENU,
-    REMOVE,
-    REMOVE_MENU,
-    VIEW,
-    VIEW_MENU,
+    SELECT_BUILDING_TO_ADD = 1,
+    SELECT_SQUARE_TO_ADD_TO,
+    SELECT_SQUARE_TO_REMOVE_FROM,
+    SELECT_SQUARE_TO_VIEW,
 };
 
 class Game {
@@ -29,9 +25,9 @@ class Game {
 
         std::vector<std::tuple<Building, Box>> m_building_boxes {};
         std::vector<Box> m_map {};
-        std::vector<Box> m_buttons {};
-        Vector2 m_lower_bound {};
-        Vector2 m_upper_bound {};
+        std::map<const char*, Box> m_buttons {};
+        Vector2 m_camera_lower_bound {};
+        Vector2 m_camera_upper_bound {};
         Camera2D m_camera {};
         Mode m_mode {};
         float m_camera_move_speed {};
