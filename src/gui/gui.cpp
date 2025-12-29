@@ -402,9 +402,28 @@ void Game::DrawCall(void) {
 }
 
 void Game::GameLoop(void) {
+    Simulation sim;
+    sim.prompt_chose_city();
+    int lastTickAt = GetTickCount();
+
     while (!WindowShouldClose()) {
         HandleInput();
         DrawCall();
+
+        City* runningCity = sim.get_running_city();
+        if (runningCity == nullptr) {
+            std::cerr << "No running city selected." << std::endl;
+            return 1;
+        }
+
+        int currentTime = GetTickCount();
+        if (currentTime - lastTickAt < tickSpeed) continue;
+        lastTickAt = currentTime;
+        int dt = currentTime - lastTickAt;
+
+        runningCity->tick(dt);
+
+        // std::cout << "Ticked city: " << runningCity->name << std::endl;
     }
     CloseWindow();
 }
