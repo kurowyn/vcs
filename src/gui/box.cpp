@@ -13,7 +13,7 @@ bool Box::IsHovered(Vector2 mouse_position) {
 }
 
 void Box::Draw(Vector2 mouse_position) {
-    Color color {};
+    Color color{};
 
     if (!m_is_hoverable) {
         color = m_unhovered_color;
@@ -26,7 +26,8 @@ void Box::Draw(Vector2 mouse_position) {
             DrawRectangleRec(m_rectangle, color);
             break;
         default:
-            DrawTextureV(m_texture, Vector2(m_rectangle.x, m_rectangle.y), color);
+            DrawTextureV(m_texture, Vector2(m_rectangle.x, m_rectangle.y),
+                         color);
             break;
     }
 }

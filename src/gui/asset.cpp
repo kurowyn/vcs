@@ -1,4 +1,5 @@
 #include "asset.hpp"
+
 #include <string>
 
 Texture2D Asset::CITY_FIELD = Texture2D();
@@ -21,31 +22,33 @@ float Asset::BUILDING_SQUARE_HEIGHT = 0.0f;
 float Asset::BUTTON_PADDING = 0.0f;
 
 void Asset::LoadAssets(void) {
-    Image RESIZED_HOUSE_IMAGE {LoadImage("../assets/house_assets/house_1.png")};
-    Image RESIZED_PARK_IMAGE {LoadImage("../assets/park_assets/park_1.png")};
-    Image RESIZED_FACTORY_IMAGE {LoadImage("../assets/factory_assets/factory_1.png")};
-    Image CITY_FIELD_IMAGE {LoadImage("../assets/city_assets/city_texture.png")};
+    Image RESIZED_HOUSE_IMAGE{LoadImage("../assets/house_assets/house_1.png")};
+    Image RESIZED_PARK_IMAGE{LoadImage("../assets/park_assets/park_1.png")};
+    Image RESIZED_FACTORY_IMAGE{
+        LoadImage("../assets/factory_assets/factory_1.png")};
+    Image CITY_FIELD_IMAGE{LoadImage("../assets/city_assets/city_texture.png")};
 
     ImageAlphaCrop(&RESIZED_HOUSE_IMAGE, 0.0f);
     ImageAlphaCrop(&RESIZED_PARK_IMAGE, 0.0f);
     ImageAlphaCrop(&RESIZED_FACTORY_IMAGE, 0.0f);
 
-    ImageResizeNN(&RESIZED_HOUSE_IMAGE, 
-            50, 
-            RESIZED_HOUSE_IMAGE.height * 50 / RESIZED_HOUSE_IMAGE.width);
-    ImageResizeNN(&RESIZED_PARK_IMAGE, 
-            50, 
-            RESIZED_PARK_IMAGE.height * 50 / RESIZED_PARK_IMAGE.width);
-    ImageResizeNN(&RESIZED_FACTORY_IMAGE, 
-            50, 
-            RESIZED_FACTORY_IMAGE.height * 50 / RESIZED_FACTORY_IMAGE.width);
+    ImageResizeNN(&RESIZED_HOUSE_IMAGE, 50,
+                  RESIZED_HOUSE_IMAGE.height * 50 / RESIZED_HOUSE_IMAGE.width);
+    ImageResizeNN(&RESIZED_PARK_IMAGE, 50,
+                  RESIZED_PARK_IMAGE.height * 50 / RESIZED_PARK_IMAGE.width);
+    ImageResizeNN(
+        &RESIZED_FACTORY_IMAGE, 50,
+        RESIZED_FACTORY_IMAGE.height * 50 / RESIZED_FACTORY_IMAGE.width);
 
     Asset::DEFAULT_FONT = LoadFont("../assets/fonts/CascadiaMono.ttf");
     Asset::CITY_FIELD = LoadTextureFromImage(CITY_FIELD_IMAGE);
-    Asset::ADD_BUTTON = LoadTexture("../assets/button_assets/neon_add_button.png");
-    Asset::REMOVE_BUTTON = LoadTexture("../assets/button_assets/neon_remove_button.png");
-    Asset::VIEW_BUTTON = LoadTexture("../assets/button_assets/neon_view_button.png");
-    Asset::VIEW_CITY_INFO_BUTTON = 
+    Asset::ADD_BUTTON =
+        LoadTexture("../assets/button_assets/neon_add_button.png");
+    Asset::REMOVE_BUTTON =
+        LoadTexture("../assets/button_assets/neon_remove_button.png");
+    Asset::VIEW_BUTTON =
+        LoadTexture("../assets/button_assets/neon_view_button.png");
+    Asset::VIEW_CITY_INFO_BUTTON =
         LoadTexture("../assets/button_assets/neon_view_city_info_button.png");
     Asset::PLUS_SIGN = LoadTexture("../assets/city_assets/add_sign.png");
     Asset::HOUSE = LoadTexture("../assets/house_assets/house_1.png");
