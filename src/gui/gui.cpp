@@ -2,11 +2,7 @@
 
 std::vector<Building> g_buildings {};
 
-void ShowColor(const Color& color) {
-    std::println("R: {}, G: {}, B: {}, A: {}", color.r, color.g, color.b, color.a);
-}
-
-int Game::EVENT_TRIGGER_INTERVAL = 10;
+int Game::EVENT_TRIGGER_INTERVAL = 60;
 std::string Game::GAME_TITLE {"vcs - a minimal city simulator"};
 int Game::FPS {120};
 Color Game::BACKGROUND_COLOR {17, 63, 42, 255};
@@ -32,6 +28,7 @@ Game::Game(float width, float height) {
     m_column_count = 10;
     m_row_count = 10;
     m_current_time = steady_clock::now();
+    m_selected_building_icon_type = "None";
 }
 
 Game::Game(int width, int height): Game((float)width, (float)height) {}
@@ -48,7 +45,6 @@ void Game::InitGame(void) {
 }
 
 void Game::PositionAssets(void) {
-    std::println("[DEBUG] Positioning the assets.");
     Asset::LoadAssets();
 
     m_map.emplace_back(Box()
@@ -161,8 +157,6 @@ void Game::PositionAssets(void) {
 
     m_camera_upper_bound = {.x = Asset::CITY_FIELD.width - m_width,
                             .y = Asset::CITY_FIELD.height - m_height};
-
-    std::println("[DEBUG] Finished positioning the assets.");
 }
 
 void Game::RegulateCamera(void) {
@@ -383,58 +377,17 @@ void Game::DrawCall(void) {
                     }
                     break;
                 case State::SELECT_SQUARE_TO_ADD_TO: {
-                    // originally no building
-                    Building new_building {};
                     if (id == 0) {
-                        new_building = Building(m_selected_building_icon_type);
-                        new_building.ShowBuildingDetails();
-
-                        id = new_building.m_id;
-                        m_city.AddBuilding(new_building);
+                        m_city.AddBuilding(Building(m_selected_building_icon_type));
+                        id = m_city.m_buildings.back().m_id;
                     // there was a building
                     } else {
-                        for (auto& building: m_city.m_buildings) {
-                            if (id == building.m_id) {
-                                if (building.m_type != m_selected_building_icon_type) {
-                                    building = Building(building.m_name,
-                                                        m_selected_building_icon_type,
-                                                        building.m_id);
-                                    new_building = building;
-                                }
-                                break;
-                            }
-                        }
+                        Building old_building {m_city.SearchBuilding(id)};
+                        m_city.ModifyBuilding(id, Building(
+                                    Building::GenerateBuildingName(m_selected_building_icon_type),
+                                                           m_selected_building_icon_type,
+                                                           old_building.m_id));
                     }
-                    m_city.m_total_satisfaction_rate += new_building.m_satisfaction_effect;
-                    m_city.m_total_pollution_rate += new_building.m_pollution_effect;
-
-                    m_city.m_total_water_consumption.m_quantity += 
-                        new_building.m_consumed_water.m_quantity;
-
-                    m_city.m_total_water_quantity.m_quantity -= 
-                        new_building.m_consumed_water.m_quantity;
-
-                    m_city.m_total_electricity_consumption.m_quantity += 
-                        new_building.m_consumed_electricity.m_quantity = 0;
-
-                    m_city.m_total_electricity_quantity.m_quantity -= 
-                        new_building.m_consumed_electricity.m_quantity;
-
-                    if (m_city.m_total_water_quantity.m_quantity < 0) {
-                        m_city.m_total_water_quantity.m_quantity = 0;
-                    }
-
-                    if (m_city.m_total_water_quantity.m_quantity < 0) {
-                        m_city.m_total_electricity_quantity.m_quantity = 0;
-                    }
-
-                    m_city.m_population += new_building.m_inhabitant_count;
-
-                    m_city.m_total_water_quantity.m_quantity +=
-                        new_building.m_produced_water.m_quantity;
-
-                    m_city.m_total_electricity_quantity.m_quantity +=
-                        new_building.m_produced_electricity.m_quantity;
 
                     building_box.m_texture = Asset::TEXTURE_MAP[m_selected_building_icon_type];
                     building_box.m_unhovered_color = WHITE;
@@ -442,22 +395,10 @@ void Game::DrawCall(void) {
                     break;
                 }
                 case State::SELECT_SQUARE_TO_REMOVE_FROM: {
-                    Building target_building {};
-                    for (auto& building: m_city.m_buildings) {
-                        if (building.m_id == id) {
-                            target_building = building;
-                            break;
-                        }
-                    }
-
-                    m_city.m_total_satisfaction_rate -= target_building.m_satisfaction_effect;
-                    m_city.m_total_pollution_rate -= target_building.m_satisfaction_effect;
-                    m_city.m_population -= target_building.m_inhabitant_count;
-
+                    m_city.RemoveBuilding(id);
                     building_box.m_texture = Texture2D();
                     building_box.m_hovered_color = BLANK;
                     building_box.m_unhovered_color = BLANK;
-                    m_city.RemoveBuilding(id);
                     id = 0;
                     break;
                 }
@@ -474,17 +415,8 @@ void Game::DrawCall(void) {
        
         ClearBackground(Color(70, 77, 79, 255));
 
-        Building selected_building {};
-        Texture2D selected_building_texture {};
-
-        for (auto& building: m_city.m_buildings) {
-            if (building.m_id == m_selected_square_id) {
-                selected_building = building;
-                break;
-            }
-        }
-
-        selected_building_texture = Asset::TEXTURE_MAP[selected_building.m_type];
+        Building selected_building {m_city.SearchBuilding(m_selected_square_id)};
+        Texture2D selected_building_texture {Asset::TEXTURE_MAP[selected_building.m_type]};
 
         DrawTextEx(Asset::DEFAULT_FONT, "BUILDING INFORMATION", Vector2(10, 10), 40, 1.5f, LIME);
 
@@ -543,20 +475,20 @@ void Game::DrawCall(void) {
         std::array building_information_strings {
             std::format("Name: {}", m_city.m_name),
             std::format("Population: {}", m_city.m_population),
-            std::format("Satisfaction Rate: {}", m_city.m_total_satisfaction_rate),
-            std::format("Pollution Rate: {}", m_city.m_total_pollution_rate),
+            std::format("Satisfaction Rate: {}", m_city.m_satisfaction_level),
+            std::format("Pollution Rate: {}", m_city.m_pollution_level),
             std::format("Water Consumption: {} {}(s)", 
-                        m_city.m_total_water_consumption.m_quantity,
-                        m_city.m_total_water_consumption.m_unit),
+                        m_city.m_consumed_water.m_quantity,
+                        m_city.m_consumed_water.m_unit),
             std::format("Electricity Consumption: {} {}(s)", 
-                        m_city.m_total_electricity_consumption.m_quantity,
-                        m_city.m_total_electricity_consumption.m_unit),
+                        m_city.m_consumed_electricity.m_quantity,
+                        m_city.m_consumed_electricity.m_unit),
             std::format("Water Production: {} {}(s)", 
-                        m_city.m_total_water_quantity.m_quantity,
-                        m_city.m_total_water_quantity.m_unit),
+                        m_city.m_produced_water.m_quantity,
+                        m_city.m_produced_water.m_unit),
             std::format("Electricity Production: {} {}(s)", 
-                        m_city.m_total_electricity_quantity.m_quantity,
-                        m_city.m_total_electricity_quantity.m_unit),
+                        m_city.m_produced_electricity.m_quantity,
+                        m_city.m_produced_electricity.m_unit),
         };
 
         for (auto i {0}; i < building_information_strings.size(); ++i) {
@@ -670,7 +602,6 @@ void Game::TriggerEvent(void) {
         m_current_time = steady_clock::now();
         m_event_triggered = true;
         m_event = Game::EVENT_LIST[Random::GenerateRandomInteger(0, Game::EVENT_LIST.size() - 1)];
-        std::println("[DEBUG] Event {}", std::to_underlying(m_event));
 
         if (m_event == Event::NIGHT_TIME) {
             for (auto& map: m_map) {
@@ -681,60 +612,25 @@ void Game::TriggerEvent(void) {
                 map.m_unhovered_color = Game::DAY_COLOR;
             }
         } else if (m_event == Event::BUILDINGS_PRODUCE_RESOURCES) {
-            for (auto& building: m_city.m_buildings) {
-                if (building.m_type == BuildingType::FACTORY) {
-                    m_city.m_total_water_quantity.m_quantity += 
-                        building.m_produced_water.m_quantity;
-                    m_city.m_total_electricity_quantity.m_quantity += 
-                        building.m_produced_electricity.m_quantity;
-                    m_city.m_total_pollution_rate += building.m_pollution_effect;
-                }
-            }
+            m_city.ProduceResources();
         } else if (m_event == Event::BUILDINGS_CONSUME_RESOURCES) {
-            for (auto& building: m_city.m_buildings) {
-                m_city.m_total_water_quantity.m_quantity -= 
-                    building.m_consumed_water.m_quantity;
-                m_city.m_total_electricity_quantity.m_quantity -= 
-                    building.m_consumed_electricity.m_quantity;
-
-                if (m_city.m_total_water_quantity.m_quantity <= 0) {
-                    m_city.m_total_water_quantity.m_quantity = 0;
-                    m_city.m_total_satisfaction_rate -= Random::GenerateRandomInteger(100, 500);
-                }
-
-                if (m_city.m_total_water_quantity.m_quantity <= 0) {
-                    m_city.m_total_water_quantity.m_quantity = 0;
-                    m_city.m_total_satisfaction_rate -= Random::GenerateRandomInteger(100, 500);
-                }
-
-                if (m_city.m_total_satisfaction_rate <= 0) {
-                    m_city.m_total_satisfaction_rate = 0;
-                }
-
-                m_city.m_total_water_consumption.m_quantity += 
-                    building.m_consumed_water.m_quantity;
-                m_city.m_total_electricity_consumption.m_quantity += 
-                    building.m_consumed_electricity.m_quantity;
-            }
+            m_city.ConsumeResources();
         } else if (m_event == Event::BUILDINGS_INCREASE_SATISFACTION) {
             for (auto& building: m_city.m_buildings) {
-                m_city.m_total_satisfaction_rate += building.m_satisfaction_effect;
+                m_city.m_satisfaction_level += building.m_satisfaction_effect;
             }
         } else if (m_event == Event::BUILDINGS_INCREASE_POLLUTION) {
             for (auto& building: m_city.m_buildings) {
-                m_city.m_total_pollution_rate += building.m_pollution_effect;
+                m_city.m_pollution_level += building.m_pollution_effect;
             }
         } else if (m_event == Event::PARKS_DECREASE_POLLUTION) {
             for (auto& building: m_city.m_buildings) {
                 if (building.m_type == BuildingType::PARK) {
-                    m_city.m_total_pollution_rate -= Random::GenerateRandomInteger(10, 1000);
-                    if (m_city.m_total_pollution_rate < 0) {
-                        m_city.m_total_pollution_rate = 0;
-                    }
+                    m_city.ModifyPollutionLevel(-Random::GenerateRandomInteger(10, 1000));
                 }
             }
         } else if (m_event == Event::DESTROY_BUILDINGS) {
-            if (m_city.m_total_satisfaction_rate < 100) {
+            if (m_city.m_satisfaction_level < 100) {
                 for (auto& [id, building_box]: m_building_boxes) {
                     if (id != 0 && Random::GenerateRandomInteger(0, 1) == 1) {
                         if (m_state == State::SELECT_SQUARE_TO_ADD_TO) {
@@ -756,29 +652,10 @@ void Game::TriggerEvent(void) {
 }
 
 void Game::GameLoop(void) {
-    Simulation sim;
-    sim.prompt_chose_city();
-    int lastTickAt = GetTickCount();
-
     while (!WindowShouldClose()) {
         TriggerEvent();
         HandleInput();
         DrawCall();
-
-        City* runningCity = sim.get_running_city();
-        if (runningCity == nullptr) {
-            std::cerr << "No running city selected." << std::endl;
-            return 1;
-        }
-
-        int currentTime = GetTickCount();
-        if (currentTime - lastTickAt < tickSpeed) continue;
-        lastTickAt = currentTime;
-        int dt = currentTime - lastTickAt;
-
-        runningCity->tick(dt);
-
-        // std::cout << "Ticked city: " << runningCity->name << std::endl;
     }
     CloseWindow();
 }

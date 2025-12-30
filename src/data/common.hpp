@@ -2,6 +2,7 @@
 #define COMMON_HPP
 
 #include <iostream>
+#include <optional>
 #include <format>
 #include <vector>
 #include <stdfloat>

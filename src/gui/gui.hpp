@@ -39,7 +39,6 @@ enum class Event {
     DESTROY_BUILDINGS,
 };
 
-
 class Game {
     public:
         static std::string GAME_TITLE;
@@ -67,7 +66,7 @@ class Game {
         std::vector<std::tuple<std::string, Box>> m_buttons {};
         std::vector<std::tuple<std::string, Box>> m_building_buttons {};
 
-        std::string m_selected_building_icon_type {"None"};
+        std::string m_selected_building_icon_type {};
 
         Vector2 m_camera_lower_bound {};
         Vector2 m_camera_upper_bound {};

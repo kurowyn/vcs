@@ -1,19 +1,8 @@
 #include "building.hpp"
 
 int main(void) {
-    City city {};
-    city.AddBuilding(Building(BuildingType::HOUSE));
-    city.AddBuilding(Building(BuildingType::PARK));
-    city.AddBuilding(Building(BuildingType::FACTORY));
-    city.AddBuilding(Building(BuildingType::HOUSE));
-    city.AddBuilding(Building(BuildingType::PARK));
-    for (auto& building: city.m_buildings) {
-        building.ShowBuildingDetails();
-    }
-    city.RemoveBuilding(1);
-    city.RemoveBuilding(2);
-    city.RemoveBuilding(10);
-    for (auto& building: city.m_buildings) {
-        building.ShowBuildingDetails();
-    }
+    Resource r1 {ResourceType::WATER, Unit::LITER, 100};
+    Resource r2 {ResourceType::WATER, Unit::LITER, 100};
+    r1 += r2;
+    std::println("{}, {}, {}", r1.m_type, r1.m_unit, r1.m_quantity);
 }

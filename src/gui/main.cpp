@@ -1,6 +1,6 @@
 #include "gui.hpp"
 
 int main(void) {
-    Game(1280, 720).StartGame();
+    Game(1920, 1080).StartGame();
     return 0;
 }

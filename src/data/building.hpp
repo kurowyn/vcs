@@ -12,6 +12,11 @@ struct Resource {
     Resource(string type, string unit, i32 quantity);
 };
 
+Resource operator+(Resource r1, Resource r2);
+Resource operator-(Resource r1, Resource r2);
+Resource operator+=(Resource& r1, Resource r2);
+Resource operator-=(Resource& r1, Resource r2);
+
 namespace BuildingType {
     constexpr string HOUSE = "House";
     constexpr string FACTORY = "Factory";
@@ -54,10 +59,6 @@ class Building {
         static std::string GenerateBuildingName(std::string type);
 
         void ShowBuildingDetails(void);
-        void AddInhabitants(i32 count);
-        void RemoveInhabitants(i32 count);
-        void ProduceResources(void);
-        void IncreaseSatisfactionEffect(void);
 };
 
 class City {
@@ -65,22 +66,27 @@ class City {
         std::string m_name {};
         std::vector<Building> m_buildings {};
         i32 m_population {};
-        i32 m_total_satisfaction_rate {};
-        i32 m_total_pollution_rate {};
-        Resource m_total_water_consumption;
-        Resource m_total_electricity_consumption;
-        Resource m_total_water_quantity;
-        Resource m_total_electricity_quantity;
+        i32 m_satisfaction_level {};
+        i32 m_pollution_level {};
+        Resource m_consumed_water;
+        Resource m_consumed_electricity;
+        Resource m_produced_water;
+        Resource m_produced_electricity;
 
         City(std::string name);
         City(void);
         void AddBuilding(Building building);
+        void ModifyBuilding(i32 id, Building building);
         void RemoveBuilding(i32 id);
-        void CalculateSatisfactionRate(void);
-        void CalculateTotalWaterConsumption(void);
-        void CalculateTotalElectricityConsumption(void);
-        void CalculateTotalWater(void);
-        void CalculateTotalElectricity(void);
+        Building SearchBuilding(i32 id);
+
+        void ModifyPopulation(i32 population);
+        void ModifyPollutionLevel(i32 pollution);
+        void ModifySatisfactionLevel(i32 satisfaction);
+
+        void ProduceResources(void);
+        void ConsumeResources(void);
+
         void ShowCityInformation(void);
 };
 

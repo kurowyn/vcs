@@ -63,6 +63,7 @@ void Asset::LoadAssets(void) {
     Asset::TEXTURE_MAP["House"] = Asset::HOUSE;
     Asset::TEXTURE_MAP["Park"] = Asset::PARK;
     Asset::TEXTURE_MAP["Factory"] = Asset::FACTORY;
+    Asset::TEXTURE_MAP["NONE"] = Texture2D();
 
     UnloadImage(RESIZED_HOUSE_IMAGE);
     UnloadImage(RESIZED_PARK_IMAGE);

@@ -8,11 +8,39 @@ Resource::Resource(string type, string unit, i32 quantity) {
     m_quantity = quantity;
 }
 
+Resource operator+(Resource r1, Resource r2) {
+    if (r1.m_type == r2.m_type && r1.m_unit == r2.m_unit) {
+        return Resource(r1.m_type, r1.m_unit, r1.m_quantity + r2.m_quantity);
+    }
+}
+
+Resource operator-(Resource r1, Resource r2) {
+    if (r1.m_type == r2.m_type && r1.m_unit == r2.m_unit) {
+        return Resource(r1.m_type, r1.m_unit, r1.m_quantity - r2.m_quantity >= 0 ? 
+                                              r1.m_quantity - r2.m_quantity : 0);
+    }
+}
+
+Resource operator+=(Resource& r1, Resource r2) {
+    if (r1.m_type == r2.m_type && r1.m_unit == r2.m_unit) {
+        r1.m_quantity = r1.m_quantity + r2.m_quantity;
+        return Resource(r1.m_type, r1.m_unit, r1.m_quantity + r2.m_quantity);
+    }
+}
+
+Resource operator-=(Resource& r1, Resource r2) {
+    if (r1.m_type == r2.m_type && r1.m_unit == r2.m_unit) {
+        r2.m_quantity =  r1.m_quantity - r2.m_quantity >= 0 ?  r1.m_quantity - r2.m_quantity : 0;
+        return Resource(r1.m_type, r1.m_unit, r1.m_quantity - r2.m_quantity >= 0 ? 
+                                              r1.m_quantity - r2.m_quantity : 0);
+    }
+}
+
 Building::Building(string name, string type, i32 id) {
     m_id = id;
     m_name = name;
     m_type = type;
-    m_satisfaction_effect = Random::GenerateRandomInteger(-100, 1000);
+    m_satisfaction_effect = Random::GenerateRandomInteger(10, 1000);
     m_pollution_effect = Random::GenerateRandomInteger(10, 1000);
     m_consumed_water = Resource(ResourceType::WATER, 
                                 Unit::LITER,
@@ -69,31 +97,25 @@ void Building::ShowBuildingDetails(void) {
                  m_satisfaction_effect, m_pollution_effect);
 }
 
-void Building::AddInhabitants(i32 count) {
-    if (m_type == BuildingType::HOUSE && count > 0) {
-        m_inhabitant_count = m_inhabitant_count + count > m_inhabitant_capacity ? 
-                             m_inhabitant_count : m_inhabitant_count + count;
+void City::ModifyPollutionLevel(i32 pollution_level) {
+    m_pollution_level += pollution_level;
+    if (m_pollution_level < 0) {
+        m_pollution_level = 0;
     }
 }
 
-void Building::RemoveInhabitants(i32 count) {
-    if (m_type == BuildingType::HOUSE && count > 0) {
-        m_inhabitant_count = m_inhabitant_count + count > m_inhabitant_capacity ? 
-                             m_inhabitant_count : m_inhabitant_count + count;
+void City::ModifyPopulation(i32 population) {
+    m_population += population;
+    if (m_population < 0) {
+        m_population = 0;
     }
 }
 
-void Building::ProduceResources(void) {
-    if (m_type == BuildingType::FACTORY) {
-        m_pollution_effect += Random::GenerateRandomInteger(-100, 100);
-        m_satisfaction_effect += Random::GenerateRandomInteger(-100, 100);
-        m_produced_water.m_quantity += Random::GenerateRandomInteger(100, 1000);
-        m_produced_electricity.m_quantity += Random::GenerateRandomInteger(100, 1000);
+void City::ModifySatisfactionLevel(i32 satisfaction_level) {
+    m_satisfaction_level += satisfaction_level;
+    if (m_satisfaction_level < 0) {
+        m_satisfaction_level = 0;
     }
-}
-
-void Building::IncreaseSatisfactionEffect(void) {
-    m_satisfaction_effect += Random::GenerateRandomInteger(100, 1000);
 }
 
 City::City(string name) {
@@ -104,61 +126,70 @@ City::City(void) {
     static std::array random_adjectives {"Beautiful", "Amazing", "Great", "Wonderful", "Ordinary"};
     m_name = std::format("{} City", 
                 random_adjectives[Random::GenerateRandomInteger(0, random_adjectives.size() - 1)]);
-    m_total_water_consumption = Resource(ResourceType::WATER, Unit::LITER, 0);
-    m_total_electricity_consumption = Resource(ResourceType::ELECTRICITY, Unit::WATT, 0);
-    m_total_water_quantity = Resource(ResourceType::WATER, Unit::LITER, 0);
-    m_total_electricity_quantity = Resource(ResourceType::ELECTRICITY, Unit::WATT, 0);
+    m_consumed_water = Resource(ResourceType::WATER, Unit::LITER, 0);
+    m_consumed_electricity = Resource(ResourceType::ELECTRICITY, Unit::WATT, 0);
+    m_produced_water = Resource(ResourceType::WATER, Unit::LITER, 0);
+    m_produced_electricity = Resource(ResourceType::ELECTRICITY, Unit::WATT, 0);
 }
 
 void City::AddBuilding(Building building) {
     m_buildings.push_back(building);
+    ModifyPollutionLevel(building.m_pollution_effect);
+    ModifySatisfactionLevel(building.m_satisfaction_effect);
+    ModifyPopulation(building.m_inhabitant_count);
+    m_consumed_water += building.m_consumed_water;
+    m_consumed_electricity += building.m_consumed_electricity;
+    m_produced_water += building.m_produced_water;
+    m_produced_electricity += building.m_produced_electricity;
+}
+
+void City::ModifyBuilding(i32 id, Building new_building) {
+    for (auto& building: m_buildings) {
+        if (building.m_id == id) {
+            building = new_building;
+            building.m_id = id;
+            // for good measure.
+        }
+    }
 }
 
 void City::RemoveBuilding(i32 id) {
     for (auto it {m_buildings.begin()}; it != m_buildings.end(); ++it) {
         if (it->m_id == id) {
+            ModifyPollutionLevel(-it->m_pollution_effect);
+            ModifySatisfactionLevel(-it->m_satisfaction_effect);
+            ModifyPopulation(-it->m_inhabitant_count);
+            m_consumed_water -= it->m_consumed_water;
+            m_consumed_electricity -= it->m_consumed_electricity;
+            m_produced_water -= it->m_produced_water;
+            m_produced_electricity -= it->m_produced_electricity;
             m_buildings.erase(it);
             break;
         }
     }
 }
 
-void City::CalculateSatisfactionRate(void) {
-    auto total {0};
-    for (auto it {m_buildings.begin()}; it != m_buildings.end(); ++it) {
-        total += it->m_satisfaction_effect;
+Building City::SearchBuilding(i32 id) {
+    for (auto& building: m_buildings) {
+        if (building.m_id == id) {
+            return building;
+        }
     }
-    m_total_satisfaction_rate = total;
+    return Building(BuildingType::NONE, BuildingType::NONE, 0);
 }
 
-void City::CalculateTotalWaterConsumption(void) {
-    auto total {0};
-    for (auto it {m_buildings.begin()}; it != m_buildings.end(); ++it) {
-        total += it->m_consumed_water.m_quantity;
+void City::ProduceResources(void) {
+    for (auto& building: m_buildings) {
+        m_produced_water += building.m_produced_water;
+        m_produced_electricity += building.m_produced_water;
     }
-    m_total_water_consumption.m_quantity = total;
 }
 
-void City::CalculateTotalElectricityConsumption(void) {
-    auto total {0};
-    for (auto it {m_buildings.begin()}; it != m_buildings.end(); ++it) {
-        total += it->m_consumed_electricity.m_quantity;
+void City::ConsumeResources(void) {
+    for (auto& building: m_buildings) {
+        m_consumed_water += building.m_consumed_water;
+        m_consumed_electricity += building.m_consumed_electricity;
+        m_produced_water -= building.m_consumed_water;
+        m_produced_electricity -= building.m_consumed_electricity;
     }
-    m_total_electricity_consumption.m_quantity = total;
-}
-
-void City::CalculateTotalWater(void) {
-    auto total {0};
-    for (auto it {m_buildings.begin()}; it != m_buildings.end(); ++it) {
-        total += it->m_produced_water.m_quantity;
-    }
-    m_total_water_quantity.m_quantity = total;
-}
-
-void City::CalculateTotalElectricity(void) {
-    auto total {0};
-    for (auto it {m_buildings.begin()}; it != m_buildings.end(); ++it) {
-        total += it->m_produced_electricity.m_quantity;
-    }
-    m_total_electricity_quantity.m_quantity = total;
 }
