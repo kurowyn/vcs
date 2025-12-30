@@ -1,0 +1,119 @@
+What should our "simulator" be able to do? 
+
+We'll implement the ability to edit the names of the houses last.
+- Place a building 
+This is by clicking the "plus button" on the GUI.
+The GUI's state transforms to a "Select Building To Add" state.
+In this state, the squares are not clickable. Select a building first.
+After clicking on a building icon, the selected building icon is captured, and
+the GUI's state becomes "Select A Square To Add To" state.
+While in the "Select A Square To Add To" state, you can still choose another building. Capturing
+still happens.
+In this "Select A Square To Add To" state, you can select on any square to add a building to,
+even if this square already has a building.
+Case 0: there is no building. 
+Add a building to our city, using the captured building type. 
+This adds a building with a name of the form: {building_type}{id}.
+The building_type is calculated from the building icon clicked. The ID is a global variable.
+The square now has the ID of the building.
+
+Case 1: there is a building. 
+Using the building ID of the square, find the corresponding building in our city.
+Then, change everything, besides its ID and name.
+
+- Remove a building (removing a building from our city.) 
+This is by clicking the "remove button" on the GUI.
+The GUI's state becomes "Select Building To Remove".
+Case 0: a square with a building is selected.
+Find the corresponding building using the square's building ID, and remove it from the city.
+Case 1: a square with no building is selected.
+Do nothing.
+
+-  View a building 
+This is by clicking the "View Button" on the GUI.
+The GUI's state becomes "Select Building To View".
+Case 0: a square with a building is selected.
+The GUI's state is: "Viewing Building".
+Show a screen that has a picture of the building, next to which is a list of attributes of the
+building.
+You can only change the name.
+Press ESC / right click to exit, which will change the state to "Select Building To View".
+Case 1: a square without a building is selected.
+Do nothing.
+
+- View information about our city 
+This is by clicking the "Settings Button" on the GUI.
+The GUI's state becomes "View City Information".
+It shows a menu that has all sorts of info about the city.
+
+- Trigger random events. All an event does is simply modify the attributes of a simulation 
+(the game class).  
+Essentially, we're hardcoding stuff. 
+Here are some events we will easily implement: 
+- Night time. Precisely, we're modifying the tint color of our city texture.
+- Dawn. Precisely, we're modifying the tint color of our city texture.
+- Day. Precisely, we're modifying the tint color of our city texture.
+- Parks increase satisfaction effect.
+- Parks reduce pollution.
+- Factories increase satisfaction effect.
+- Factories increase pollution.
+- Factories decrease satisfaction effect.
+- Factories produce stuff.
+- Factories consume stuff.
+- Houses consume stuff.
+- Parks consume stuff.
+- The city's resources are consumed/increased. Afterwards, consumption/production is reset for
+every building.
+- Random homes are destroyed.
+- Random parks are destroyed.
+- Population increases.
+- Population decreases.
+- Check the satisfaction level of our city. If it is above a certain threshold, increase the 
+city's surface. If this is too difficult, don't implement it.
+Every 60 seconds, trigger a random event. This, too, is hardcoded.
+
+Some pseudocode:
+
+class Simulation
+    Event m_event;
+    void TriggerEvent(void) {
+        m_event = GetRandomEvent();
+        switch (m_event) {
+            ...
+            // modify stuff
+        }
+    }
+
+What is a building?
+A building has the following attributes:
+m_id
+m_name
+m_type
+m_satisfaction_effect
+m_pollution_effect
+m_consumed_water
+m_consumed_electricity
+m_produced_water
+m_produced_electricity
+m_inhabitant_count
+m_inhabitant_capacity
+We're giving up on inheritance, to reduce complexity.
+
+What is a city?
+A city has the following attributes:
+m_name
+m_building_list
+m_satisfaction_level
+m_pollution_level
+m_population
+m_total_water
+m_total_electricity
+m_total_water_consumption
+m_total_electricity_consumption
+
+Our game class contains a city, along with:
+- mouse position
+- relative mouse position
+- and so on.
+
+さて。。。

@@ -1,96 +1,26 @@
 #include "gui.hpp"
 
-namespace Asset {
-    Texture2D CITY_FIELD;
-    Texture2D ADD_BUTTON;
-    Texture2D REMOVE_BUTTON;
-    Texture2D VIEW_BUTTON;
-    Texture2D PLUS_SIGN;
-    Texture2D HOUSE;
-    Texture2D RESIZED_HOUSE;
-    Texture2D PARK;
-    Texture2D RESIZED_PARK;
-    Texture2D FACTORY;
-    Texture2D RESIZED_FACTORY;
+std::vector<Building> g_buildings {};
 
-    std::map<const char*, Texture2D> BUILDING_TEXTURES;
-    std::array<Texture2D, 6> BUTTON_TEXTURES;
-    std::array<const char*, 6> BUTTON_NAMES;
+void ShowColor(const Color& color) {
+    std::println("R: {}, G: {}, B: {}, A: {}", color.r, color.g, color.b, color.a);
+}
 
-    float BUILDING_SQUARE_PADDING;
-    float BUILDING_SQUARE_WIDTH;
-    float BUILDING_SQUARE_HEIGHT;
-    float BUTTON_PADDING;
-
-    float CITY_FIELD_WIDTH;
-    float CITY_FIELD_HEIGHT;
-    int COLUMN_COUNT;
-    int ROW_COUNT;
-
-    int LoadAssets(void) {
-        Image RESIZED_HOUSE_IMAGE {LoadImage("../assets/house_assets/house_1.png")};
-        Image RESIZED_PARK_IMAGE {LoadImage("../assets/park_assets/park_1.png")};
-        Image RESIZED_FACTORY_IMAGE {LoadImage("../assets/factory_assets/factory_1.png")};
-
-        ImageAlphaCrop(&RESIZED_HOUSE_IMAGE, 0.0f);
-        ImageAlphaCrop(&RESIZED_PARK_IMAGE, 0.0f);
-        ImageAlphaCrop(&RESIZED_FACTORY_IMAGE, 0.0f);
-
-        ImageResizeNN(&RESIZED_HOUSE_IMAGE, 
-                      50, 
-                      RESIZED_HOUSE_IMAGE.height * 50 / RESIZED_HOUSE_IMAGE.width);
-        ImageResizeNN(&RESIZED_PARK_IMAGE, 
-                      50, 
-                      RESIZED_PARK_IMAGE.height * 50 / RESIZED_PARK_IMAGE.width);
-        ImageResizeNN(&RESIZED_FACTORY_IMAGE, 
-                      50, 
-                      RESIZED_FACTORY_IMAGE.height * 50 / RESIZED_FACTORY_IMAGE.width);
-
-        Asset::CITY_FIELD = LoadTexture("../assets/city_assets/city_texture.png");
-        Asset::ADD_BUTTON = LoadTexture("../assets/button_assets/neon_add_button.png");
-        Asset::REMOVE_BUTTON = LoadTexture("../assets/button_assets/neon_remove_button.png");
-        Asset::VIEW_BUTTON = LoadTexture("../assets/button_assets/neon_view_button.png");
-        Asset::PLUS_SIGN = LoadTexture("../assets/city_assets/add_sign.png");
-        Asset::HOUSE = LoadTexture("../assets/house_assets/house_1.png");
-        Asset::PARK = LoadTexture("../assets/park_assets/park_1.png");
-        Asset::FACTORY = LoadTexture("../assets/factory_assets/factory_1.png");
-        Asset::RESIZED_PARK = LoadTextureFromImage(RESIZED_PARK_IMAGE);
-        Asset::RESIZED_HOUSE = LoadTextureFromImage(RESIZED_HOUSE_IMAGE);
-        Asset::RESIZED_FACTORY = LoadTextureFromImage(RESIZED_FACTORY_IMAGE);
-
-        Asset::COLUMN_COUNT = 10;
-        Asset::ROW_COUNT = 10;
-        Asset::CITY_FIELD_WIDTH = Asset::CITY_FIELD.width;
-        Asset::CITY_FIELD_HEIGHT = Asset::CITY_FIELD.height;
-        Asset::BUILDING_SQUARE_WIDTH = 294.0f;
-        Asset::BUILDING_SQUARE_HEIGHT = 294.0f;
-        Asset::BUILDING_SQUARE_PADDING = 3.0f;
-        Asset::BUTTON_PADDING = 10.0f;
-
-        Asset::BUTTON_TEXTURES = {Asset::VIEW_BUTTON,
-                                  Asset::REMOVE_BUTTON,
-                                  Asset::ADD_BUTTON,
-                                  Asset::RESIZED_HOUSE,
-                                  Asset::RESIZED_FACTORY,
-                                  Asset::RESIZED_PARK};
-
-        Asset::BUTTON_NAMES = {"View", "Remove", "Add", "House", "Factory", "Park"};
-
-        Asset::BUILDING_TEXTURES["House"] = Asset::HOUSE;
-        Asset::BUILDING_TEXTURES["Factory"] = Asset::FACTORY;
-        Asset::BUILDING_TEXTURES["Park"] = Asset::PARK;
-
-        UnloadImage(RESIZED_HOUSE_IMAGE);
-        UnloadImage(RESIZED_PARK_IMAGE);
-        UnloadImage(RESIZED_FACTORY_IMAGE);
-
-        return 0;
-    }
-};
-
+int Game::EVENT_TRIGGER_INTERVAL = 10;
 std::string Game::GAME_TITLE {"vcs - a minimal city simulator"};
-int Game::DEFAULT_FPS {120};
-Color Game::DEFAULT_COLOR {17, 63, 42, 255};
+int Game::FPS {120};
+Color Game::BACKGROUND_COLOR {17, 63, 42, 255};
+Color Game::NIGHT_COLOR {70, 82, 125, 255};
+Color Game::DAY_COLOR {WHITE};
+
+std::vector<Event> Game::EVENT_LIST {Event::NIGHT_TIME,
+                                     Event::DAY_TIME,
+                                     Event::BUILDINGS_PRODUCE_RESOURCES,
+                                     Event::BUILDINGS_CONSUME_RESOURCES,
+                                     Event::BUILDINGS_INCREASE_SATISFACTION,
+                                     Event::BUILDINGS_DECREASE_SATISFACTION,
+                                     Event::BUILDINGS_INCREASE_POLLUTION,
+                                     Event::DESTROY_BUILDINGS};
 
 Game::Game(float width, float height) {
     m_width = width; 
@@ -98,98 +28,158 @@ Game::Game(float width, float height) {
     m_camera_move_speed = 5.0f;
     m_camera = {Vector2(0, 0), Vector2(0, 0), 0.0f, 1.0f};
     m_camera_lower_bound = Vector2(0.0f, 0.0f);
-    m_mode = Mode::SELECT_SQUARE_TO_VIEW;
+    m_state = State::SELECT_SQUARE_TO_VIEW;
+    m_column_count = 10;
+    m_row_count = 10;
+    m_current_time = steady_clock::now();
 }
 
 Game::Game(int width, int height): Game((float)width, (float)height) {}
 
 Game::Game(void): Game(GetScreenWidth(), GetScreenHeight()) {}
 
-int Game::InitGame(void) {
+void Game::InitGame(void) {
     InitWindow(m_width, m_height, Game::GAME_TITLE.c_str());
     SetExitKey(KEY_NULL);
     SetConfigFlags(FLAG_VSYNC_HINT);
-//    SetWindowState(FLAG_FULLSCREEN_MODE);
-    SetTargetFPS(Game::DEFAULT_FPS);
+    SetTargetFPS(Game::FPS);
     PositionAssets();
-    return 0;
+    m_protective_rectangle = GenerateProtectiveRectangle();
 }
 
 void Game::PositionAssets(void) {
+    std::println("[DEBUG] Positioning the assets.");
     Asset::LoadAssets();
-
-    m_camera_upper_bound = Vector2{.x = Asset::CITY_FIELD_WIDTH - m_width, 
-                                   .y = Asset::CITY_FIELD_HEIGHT - m_height};
 
     m_map.emplace_back(Box()
                        .with_texture(Asset::CITY_FIELD)
-                       .with_rectangle(Rectangle{.x = 0,
+                       .with_rectangle(Rectangle{.x = 0, 
                                                  .y = 0, 
-                                                 .width = Asset::CITY_FIELD_WIDTH,
-                                                 .height = Asset::CITY_FIELD_HEIGHT})
+                                                 .width = Asset::CITY_FIELD.width, 
+                                                 .height = Asset::CITY_FIELD.height})
                        .with_is_hoverable(false)
                        .with_hovered_color(BLANK)
                        .with_unhovered_color(WHITE));
 
-    for (auto row{0}; row < Asset::ROW_COUNT; ++row) {
-        for (auto column{0}; column < Asset::COLUMN_COUNT; ++column) {
-            Rectangle position {.x = Asset::BUILDING_SQUARE_PADDING + column * 
-                                (Asset::BUILDING_SQUARE_WIDTH + Asset::BUILDING_SQUARE_PADDING),
-                                .y = Asset::BUILDING_SQUARE_PADDING + row * 
-                                (Asset::BUILDING_SQUARE_HEIGHT + Asset::BUILDING_SQUARE_PADDING),
-                                .width = Asset::BUILDING_SQUARE_WIDTH,
-                                .height = Asset::BUILDING_SQUARE_HEIGHT};
- 
-            m_building_boxes.emplace_back(Building::CreateEmptyBuilding(),
+    m_buttons.emplace_back("View",
+                           Box()
+                           .with_texture(Asset::VIEW_BUTTON)
+                           .with_rectangle(Rectangle())
+                           .with_is_hoverable(true)
+                           .with_hovered_color(SKYBLUE)
+                           .with_unhovered_color(WHITE));
+
+    m_buttons.emplace_back("Remove",
+                           Box()
+                           .with_texture(Asset::REMOVE_BUTTON)
+                           .with_rectangle(Rectangle())
+                           .with_is_hoverable(true)
+                           .with_hovered_color(SKYBLUE)
+                           .with_unhovered_color(WHITE));
+
+    m_buttons.emplace_back("Add",
+                           Box()
+                           .with_texture(Asset::ADD_BUTTON)
+                           .with_rectangle(Rectangle())
+                           .with_is_hoverable(true)
+                           .with_hovered_color(SKYBLUE)
+                           .with_unhovered_color(WHITE));
+
+    m_buttons.emplace_back("City",
+                           Box()
+                           .with_texture(Asset::VIEW_CITY_INFO_BUTTON)
+                           .with_rectangle(Rectangle())
+                           .with_is_hoverable(true)
+                           .with_hovered_color(SKYBLUE)
+                           .with_unhovered_color(WHITE));
+
+    m_building_buttons.emplace_back("House",
+                                    Box()
+                                    .with_texture(Asset::RESIZED_HOUSE)
+                                    .with_rectangle(Rectangle())
+                                    .with_is_hoverable(true)
+                                    .with_hovered_color(BLANK)
+                                    .with_unhovered_color(BLANK));
+    m_building_buttons.emplace_back("Factory",
+                                    Box()
+                                    .with_texture(Asset::RESIZED_FACTORY)
+                                    .with_rectangle(Rectangle())
+                                    .with_is_hoverable(true)
+                                    .with_hovered_color(BLANK)
+                                    .with_unhovered_color(BLANK));
+    m_building_buttons.emplace_back("Park",
+                                    Box()
+                                    .with_texture(Asset::RESIZED_PARK)
+                                    .with_rectangle(Rectangle())
+                                    .with_is_hoverable(true)
+                                    .with_hovered_color(BLANK)
+                                    .with_unhovered_color(BLANK));
+
+    Vector2 button_position {.x = m_width - Asset::ADD_BUTTON.width - Asset::BUTTON_PADDING, 
+                             .y = m_height};
+
+    for (auto& button: m_buttons) {
+        button_position.y -= std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
+        std::get<Box>(button).m_rectangle = Rectangle {.x = button_position.x, 
+                                                       .y = button_position.y,
+                                                       .width = 
+                                                           std::get<Box>(button).m_texture.width, 
+                                                       .height = 
+                                                           std::get<Box>(button).m_texture.height};
+    }
+
+    for (auto& button: m_building_buttons) {
+        button_position.y -= std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
+        std::get<Box>(button).m_rectangle = Rectangle {.x = button_position.x, 
+                                                       .y = button_position.y,
+                                                       .width = 
+                                                           std::get<Box>(button).m_texture.width, 
+                                                       .height = 
+                                                           std::get<Box>(button).m_texture.height};
+    }
+
+    for (auto row {0}; row < m_row_count; ++row) {
+        for (auto column {0}; column < m_column_count; ++column) {
+            Rectangle rectangle {.x = Asset::BUILDING_SQUARE_PADDING + column *
+                                      (Asset::BUILDING_SQUARE_WIDTH + 
+                                      Asset::BUILDING_SQUARE_PADDING),
+                                 .y = Asset::BUILDING_SQUARE_PADDING + row *
+                                      (Asset::BUILDING_SQUARE_HEIGHT + 
+                                      Asset::BUILDING_SQUARE_PADDING),
+                                 .width = Asset::BUILDING_SQUARE_WIDTH,
+                                 .height = Asset::BUILDING_SQUARE_HEIGHT};
+
+            m_building_boxes.emplace_back(0,
                                           Box()
-                                          .with_texture(Texture2D{})
-                                          .with_rectangle(position)
+                                          .with_texture(Texture2D())
+                                          .with_rectangle(rectangle)
                                           .with_is_hoverable(true)
                                           .with_hovered_color(BLANK)
                                           .with_unhovered_color(BLANK));
         }
     }
 
-    for (auto row {0}; row < 6; ++row) {
-        static Vector2 position {m_width - Asset::BUTTON_TEXTURES[row].width - Asset::BUTTON_PADDING, 
-                                 m_height};
-        position.y -= Asset::BUTTON_PADDING + Asset::BUTTON_TEXTURES[row].height;
-        m_buttons[Asset::BUTTON_NAMES[row]] = Box()
-                                              .with_texture(Asset::BUTTON_TEXTURES[row])
-                                              .with_rectangle(Rectangle(position.x,
-                                                                        position.y,
-                                                                        Asset::BUTTON_TEXTURES[row].width,
-                                                                        Asset::BUTTON_TEXTURES[row].height))
-                                              .with_is_hoverable(true)
-                                              .with_hovered_color(SKYBLUE)
-                                              .with_unhovered_color(WHITE);
-    }
+    m_camera_upper_bound = {.x = Asset::CITY_FIELD.width - m_width,
+                            .y = Asset::CITY_FIELD.height - m_height};
 
-    m_buttons["House"].m_unhovered_color = BLANK;
-    m_buttons["House"].m_hovered_color = BLANK;
-
-    m_buttons["Factory"].m_unhovered_color = BLANK;
-    m_buttons["Factory"].m_hovered_color = BLANK;
-
-    m_buttons["Park"].m_unhovered_color = BLANK;
-    m_buttons["Park"].m_hovered_color = BLANK;
+    std::println("[DEBUG] Finished positioning the assets.");
 }
 
-void Game::RegulateCamera(Vector2 lower_bound, Vector2 upper_bound) {
-    if (m_camera.target.x >= upper_bound.x) {
-        m_camera.target.x = upper_bound.x;
+void Game::RegulateCamera(void) {
+    if (m_camera.target.x >= m_camera_upper_bound.x) {
+        m_camera.target.x = m_camera_upper_bound.x;
     }
 
-    if (m_camera.target.y >= upper_bound.y) {
-        m_camera.target.y = upper_bound.y;
+    if (m_camera.target.y >= m_camera_upper_bound.y) {
+        m_camera.target.y = m_camera_upper_bound.y;
     }
 
-    if (m_camera.target.x <= lower_bound.x) {
-        m_camera.target.x = lower_bound.x;
+    if (m_camera.target.x <= m_camera_lower_bound.x) {
+        m_camera.target.x = m_camera_lower_bound.x;
     }
 
-    if (m_camera.target.y <= lower_bound.y) {
-        m_camera.target.y = lower_bound.y;
+    if (m_camera.target.y <= m_camera_lower_bound.y) {
+        m_camera.target.y = m_camera_lower_bound.y;
     }
 }
 
@@ -267,138 +257,502 @@ void Game::HandleInput(void) {
     } 
 }
 
+Rectangle Game::GenerateProtectiveRectangle(void) {
+    Rectangle rectangle {};
+    rectangle.x = m_width - (std::get<Box>(m_building_buttons.back()).m_texture.width + 
+                  Asset::BUTTON_PADDING);
+    rectangle.y = m_height;
+    rectangle.width = m_width - rectangle.x;
+
+    for (auto& button: m_buttons) {
+        rectangle.y -= std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
+    }
+
+    for (auto& button: m_building_buttons) {
+        rectangle.y -= std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
+    }
+
+    rectangle.height = m_height - rectangle.y;
+
+    return rectangle;
+}
+
 void Game::DrawCall(void) {
-    static char* selected_building {"None"};
-    auto mouse_position {GetMousePosition()};
-    auto relative_mouse_position {GetScreenToWorld2D(mouse_position, m_camera)};
+    m_mouse_position = GetMousePosition();
+    m_relative_mouse_position = GetScreenToWorld2D(m_mouse_position, m_camera);
 
-    if (m_buttons["Add"].IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
-        if (m_mode != Mode::SELECT_SQUARE_TO_ADD_TO) {
-            m_buttons["House"].m_unhovered_color = 
-                m_buttons["Factory"].m_unhovered_color =
-                m_buttons["Park"].m_unhovered_color = Fade(WHITE, 0.25f);
+    // city button
+    if (std::get<Box>(m_buttons[3]).IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+        m_state = State::VIEWING_CITY_INFORMATION;
+        for (auto& [type, building_button]: m_building_buttons) {
+            building_button.m_unhovered_color = BLANK;
+            building_button.m_hovered_color = BLANK;
+        }
 
-            m_buttons["House"].m_hovered_color =
-                m_buttons["Factory"].m_hovered_color =
-                m_buttons["Park"].m_hovered_color = WHITE;
+        for (auto& [id, building]: m_building_boxes) {
+            if (id == 0) {
+                building.m_unhovered_color = BLANK;
+                building.m_hovered_color = BLANK;
+            } else {
+                building.m_unhovered_color = WHITE;
+                building.m_hovered_color = WHITE;
+            }
+        }
+    } else if (std::get<Box>(m_buttons[2]).IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+        m_state = State::SELECT_BUILDING_TO_ADD;
+        for (auto& [type, building_button]: m_building_buttons) {
+            building_button.m_unhovered_color = Fade(WHITE, 0.25f);
+            building_button.m_hovered_color = WHITE;
+        }
 
-            m_mode = Mode::SELECT_BUILDING_TO_ADD;
+        for (auto& [id, building]: m_building_boxes) {
+            if (id == 0) {
+                building.m_texture = Asset::PLUS_SIGN;
+                building.m_unhovered_color = Fade(WHITE, 0.25f);
+                building.m_hovered_color = WHITE;
+            } else {
+                building.m_unhovered_color = WHITE;
+                building.m_hovered_color = SKYBLUE;
+            }
+        }
+    // remove button
+    } else if (std::get<Box>(m_buttons[1]).IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+        m_state = State::SELECT_SQUARE_TO_REMOVE_FROM;
+        for (auto& [type, building_button]: m_building_buttons) {
+            building_button.m_unhovered_color = BLANK;
+            building_button.m_hovered_color = BLANK;
+        }
 
-            for (auto& [building, box]: m_building_boxes) {
-                if (building.m_id == 0) {
-                    
-                    box.m_texture = Asset::PLUS_SIGN;
-                    box.m_hovered_color = WHITE;
-                    box.m_unhovered_color = Fade(WHITE, 0.25f);
-                } else {
-                    box.m_hovered_color = SKYBLUE;
-                    box.m_unhovered_color = WHITE;
+        for (auto& [id, building]: m_building_boxes) {
+            if (id == 0) {
+                building.m_texture = Texture2D();
+                building.m_unhovered_color = BLANK;
+                building.m_hovered_color = BLANK;
+            } else {
+                building.m_unhovered_color = WHITE;
+                building.m_hovered_color = RED;
+            }
+        }
+        m_selected_building_icon_type = "None";
+    // view button
+    } else if (std::get<Box>(m_buttons[0]).IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+        m_state = State::SELECT_SQUARE_TO_VIEW;
+        for (auto& [type, building_button]: m_building_buttons) {
+            building_button.m_unhovered_color = BLANK;
+            building_button.m_hovered_color = BLANK;
+        }
+
+        for (auto& [id, building]: m_building_boxes) {
+            if (id == 0) {
+                building.m_texture = Texture2D();
+                building.m_unhovered_color = BLANK;
+                building.m_hovered_color = BLANK;
+            } else {
+                building.m_unhovered_color = WHITE;
+                building.m_hovered_color = YELLOW;
+            }
+        }
+        m_selected_building_icon_type = "None";
+    }
+
+    for (auto& [type, building_button]: m_building_buttons) {
+        if ((m_state == State::SELECT_BUILDING_TO_ADD || 
+            m_state == State::SELECT_SQUARE_TO_ADD_TO) &&
+            building_button.IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+            for (auto& [type, building_button]: m_building_buttons) {
+                building_button.m_unhovered_color = Fade(WHITE, 0.25f);
+                building_button.m_hovered_color = WHITE;
+            }
+
+            m_state = State::SELECT_SQUARE_TO_ADD_TO;
+            building_button.m_unhovered_color = WHITE;
+            building_button.m_hovered_color = WHITE;
+            m_selected_building_icon_type = type;
+            break;
+        } 
+    }
+
+    for (auto& [id, building_box]: m_building_boxes) {
+        if (building_box.IsClicked(m_relative_mouse_position, MOUSE_LEFT_BUTTON) &&
+            !CheckCollisionPointRec(m_mouse_position, m_protective_rectangle)) {
+            switch (m_state) {
+                case State::SELECT_SQUARE_TO_VIEW:
+                    if (id != 0) {
+                        m_state = State::VIEWING_BUILDING;
+                        m_selected_square_id = id;
+                    }
+                    break;
+                case State::SELECT_SQUARE_TO_ADD_TO: {
+                    // originally no building
+                    Building new_building {};
+                    if (id == 0) {
+                        new_building = Building(m_selected_building_icon_type);
+                        new_building.ShowBuildingDetails();
+
+                        id = new_building.m_id;
+                        m_city.AddBuilding(new_building);
+                    // there was a building
+                    } else {
+                        for (auto& building: m_city.m_buildings) {
+                            if (id == building.m_id) {
+                                if (building.m_type != m_selected_building_icon_type) {
+                                    building = Building(building.m_name,
+                                                        m_selected_building_icon_type,
+                                                        building.m_id);
+                                    new_building = building;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    m_city.m_total_satisfaction_rate += new_building.m_satisfaction_effect;
+                    m_city.m_total_pollution_rate += new_building.m_pollution_effect;
+
+                    m_city.m_total_water_consumption.m_quantity += 
+                        new_building.m_consumed_water.m_quantity;
+
+                    m_city.m_total_water_quantity.m_quantity -= 
+                        new_building.m_consumed_water.m_quantity;
+
+                    m_city.m_total_electricity_consumption.m_quantity += 
+                        new_building.m_consumed_electricity.m_quantity = 0;
+
+                    m_city.m_total_electricity_quantity.m_quantity -= 
+                        new_building.m_consumed_electricity.m_quantity;
+
+                    if (m_city.m_total_water_quantity.m_quantity < 0) {
+                        m_city.m_total_water_quantity.m_quantity = 0;
+                    }
+
+                    if (m_city.m_total_water_quantity.m_quantity < 0) {
+                        m_city.m_total_electricity_quantity.m_quantity = 0;
+                    }
+
+                    m_city.m_population += new_building.m_inhabitant_count;
+
+                    m_city.m_total_water_quantity.m_quantity +=
+                        new_building.m_produced_water.m_quantity;
+
+                    m_city.m_total_electricity_quantity.m_quantity +=
+                        new_building.m_produced_electricity.m_quantity;
+
+                    building_box.m_texture = Asset::TEXTURE_MAP[m_selected_building_icon_type];
+                    building_box.m_unhovered_color = WHITE;
+                    building_box.m_hovered_color = SKYBLUE;
+                    break;
+                }
+                case State::SELECT_SQUARE_TO_REMOVE_FROM: {
+                    Building target_building {};
+                    for (auto& building: m_city.m_buildings) {
+                        if (building.m_id == id) {
+                            target_building = building;
+                            break;
+                        }
+                    }
+
+                    m_city.m_total_satisfaction_rate -= target_building.m_satisfaction_effect;
+                    m_city.m_total_pollution_rate -= target_building.m_satisfaction_effect;
+                    m_city.m_population -= target_building.m_inhabitant_count;
+
+                    building_box.m_texture = Texture2D();
+                    building_box.m_hovered_color = BLANK;
+                    building_box.m_unhovered_color = BLANK;
+                    m_city.RemoveBuilding(id);
+                    id = 0;
+                    break;
                 }
             }
         }
-    } else if (m_buttons["Remove"].IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
-        m_buttons["House"].m_unhovered_color = 
-            m_buttons["Factory"].m_unhovered_color = 
-            m_buttons["Park"].m_unhovered_color = BLANK;
+    }
 
-        m_buttons["House"].m_hovered_color =
-            m_buttons["Factory"].m_hovered_color =
-            m_buttons["Park"].m_hovered_color = BLANK;
+    if (m_state == State::VIEWING_BUILDING) {
+        if (IsKeyPressed(KEY_ESCAPE) || IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
+            m_state = State::SELECT_SQUARE_TO_VIEW;
+        } 
 
-        m_mode = Mode::SELECT_SQUARE_TO_REMOVE_FROM;
+        BeginDrawing();
+       
+        ClearBackground(Color(70, 77, 79, 255));
 
-        for (auto& [building, box]: m_building_boxes) {
-            if (building.m_id == 0) {
-                box.m_texture = Texture2D();
-                box.m_hovered_color = BLANK;
-                box.m_unhovered_color = BLANK;
-            } else {
-                box.m_hovered_color = RED;
-                box.m_unhovered_color = WHITE;
+        Building selected_building {};
+        Texture2D selected_building_texture {};
+
+        for (auto& building: m_city.m_buildings) {
+            if (building.m_id == m_selected_square_id) {
+                selected_building = building;
+                break;
             }
         }
-    } else if (m_buttons["View"].IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
-        m_buttons["House"].m_unhovered_color =
-            m_buttons["Factory"].m_unhovered_color =
-            m_buttons["Park"].m_unhovered_color = BLANK;
 
-        m_buttons["House"].m_hovered_color =
-            m_buttons["Factory"].m_hovered_color =
-            m_buttons["Park"].m_hovered_color = BLANK;
+        selected_building_texture = Asset::TEXTURE_MAP[selected_building.m_type];
 
-        m_mode = Mode::SELECT_SQUARE_TO_VIEW;
+        DrawTextEx(Asset::DEFAULT_FONT, "BUILDING INFORMATION", Vector2(10, 10), 40, 1.5f, LIME);
 
-        for (auto& [building, box]: m_building_boxes) {
-            if (building.m_id == 0) {
-                box.m_texture = Texture2D();
-                box.m_hovered_color = BLANK;
-                box.m_unhovered_color = BLANK;
-            } else {
-                box.m_hovered_color = SKYBLUE;
-                box.m_unhovered_color = WHITE;
+        DrawTextureV(selected_building_texture, {60, 90}, WHITE);
+
+        std::array building_information_strings {
+            std::format("ID: {}", selected_building.m_id),
+            std::format("Name: {}", selected_building.m_name),
+            std::format("Type: {}", selected_building.m_type),
+            std::format("Pollution Effect: {}", selected_building.m_pollution_effect),
+            std::format("Satisfaction Effect: {}", selected_building.m_satisfaction_effect),
+            std::format("Inhabitant Count: {}", selected_building.m_inhabitant_count),
+            std::format("Inhabitant Capacity: {}", selected_building.m_inhabitant_capacity),
+            std::format("Consumed Water: {} {}(s)", 
+                       selected_building.m_consumed_water.m_quantity,
+                       selected_building.m_consumed_water.m_unit),
+            std::format("Consumed Electricity: {} {}(s)", 
+                       selected_building.m_consumed_electricity.m_quantity,
+                       selected_building.m_consumed_electricity.m_unit),
+            std::format("Produced Water: {} {}(s)", 
+                       selected_building.m_produced_water.m_quantity,
+                       selected_building.m_produced_water.m_unit),
+            std::format("Produced Electricity: {} {}(s)", 
+                       selected_building.m_produced_electricity.m_quantity,
+                       selected_building.m_produced_electricity.m_unit)
+        };
+
+        for (auto i {0}; i < building_information_strings.size(); ++i) {
+            DrawTextEx(Asset::DEFAULT_FONT,
+                       building_information_strings[i].c_str(),
+                       Vector2(selected_building_texture.width + 40, 70 + 40 * i),
+                       40,
+                       1.5f,
+                       WHITE);
+        }
+
+        DrawTextEx(Asset::DEFAULT_FONT,
+                   "Press ESC or right click to go back!",
+                   Vector2(20, m_height - 100),
+                   50,
+                   1.5f,
+                   WHITE);
+
+        EndDrawing();
+    } else if (m_state == State::VIEWING_CITY_INFORMATION) {
+        if (IsKeyPressed(KEY_ESCAPE) || IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
+            m_state = State::SELECT_SQUARE_TO_VIEW;
+        } 
+
+        BeginDrawing();
+       
+        ClearBackground(Color(70, 77, 79, 255));
+
+        DrawTextEx(Asset::DEFAULT_FONT, "CITY INFORMATION", Vector2(10, 10), 40, 1.5f, LIME);
+
+        std::array building_information_strings {
+            std::format("Name: {}", m_city.m_name),
+            std::format("Population: {}", m_city.m_population),
+            std::format("Satisfaction Rate: {}", m_city.m_total_satisfaction_rate),
+            std::format("Pollution Rate: {}", m_city.m_total_pollution_rate),
+            std::format("Water Consumption: {} {}(s)", 
+                        m_city.m_total_water_consumption.m_quantity,
+                        m_city.m_total_water_consumption.m_unit),
+            std::format("Electricity Consumption: {} {}(s)", 
+                        m_city.m_total_electricity_consumption.m_quantity,
+                        m_city.m_total_electricity_consumption.m_unit),
+            std::format("Water Production: {} {}(s)", 
+                        m_city.m_total_water_quantity.m_quantity,
+                        m_city.m_total_water_quantity.m_unit),
+            std::format("Electricity Production: {} {}(s)", 
+                        m_city.m_total_electricity_quantity.m_quantity,
+                        m_city.m_total_electricity_quantity.m_unit),
+        };
+
+        for (auto i {0}; i < building_information_strings.size(); ++i) {
+            DrawTextEx(Asset::DEFAULT_FONT,
+                       building_information_strings[i].c_str(),
+                       Vector2(10, 70 + 40 * i),
+                       40,
+                       1.5f,
+                       WHITE);
+        }
+
+        DrawTextEx(Asset::DEFAULT_FONT,
+                   "Press ESC or right click to go back!",
+                   Vector2(20, m_height - 100),
+                   50,
+                   1.5f,
+                   WHITE);
+
+        EndDrawing();
+
+    } else {
+        RegulateCamera();
+        BeginDrawing();
+        ClearBackground(Game::BACKGROUND_COLOR);
+
+        BeginMode2D(m_camera);
+        for (auto& map: m_map) {
+            map.Draw();
+        }
+        for (auto& [id, building]: m_building_boxes) {
+            building.Draw(m_relative_mouse_position);
+        }
+        EndMode2D();
+
+        for (auto& [type, button]: m_buttons) {
+            button.Draw(m_mouse_position);
+        }
+
+        for (auto& [type, building_button]: m_building_buttons) {
+            building_button.Draw(m_mouse_position);
+        }
+
+        switch (m_state) {
+            case State::SELECT_BUILDING_TO_ADD:
+                DrawTextEx(Asset::DEFAULT_FONT,
+                           "Select a building to add!",
+                           Vector2(10, 10),
+                           40,
+                           1.5f,
+                           WHITE);
+                break;
+            case State::SELECT_SQUARE_TO_ADD_TO:
+                DrawTextEx(Asset::DEFAULT_FONT,
+                           std::format("Selected: {}", m_selected_building_icon_type).c_str(),
+                           Vector2(10, 10),
+                           40,
+                           1.5f,
+                           WHITE);
+                DrawTextEx(Asset::DEFAULT_FONT,
+                           "Select a square to add the building to!",
+                           Vector2(10, 50),
+                           40,
+                           1.5f,
+                           WHITE);
+                break;
+            case State::SELECT_SQUARE_TO_REMOVE_FROM:
+                DrawTextEx(Asset::DEFAULT_FONT,
+                           "Select a square to remove a building from!",
+                           Vector2(10, 10),
+                           40,
+                           1.5f,
+                           WHITE);
+                break;
+            case State::SELECT_SQUARE_TO_VIEW:
+                DrawTextEx(Asset::DEFAULT_FONT,
+                           "Select a square to view!",
+                           Vector2(10, 10),
+                           40,
+                           1.5f,
+                           WHITE);
+                break;
+        }
+
+        if (m_event_triggered) {
+            DrawTextEx(Asset::DEFAULT_FONT,
+                       "Random Event!",
+                       Vector2(20, m_height - 100),
+                       50,
+                       1.5f,
+                       WHITE);
+            // Makes this stay for only five seconds.
+            auto time_elapsed {
+                static_cast<int>(duration<double>(steady_clock::now() - m_current_time).count()) 
+            };
+            if (time_elapsed == 5) {
+                m_event_triggered = false;
             }
         }
-    } 
 
-    for (auto& [name, box]: m_buttons) {
-        if (name == "House" || name == "Factory" || name == "Park") {
-            if (box.IsClicked(mouse_position, MOUSE_LEFT_BUTTON)) {
-                m_mode = Mode::SELECT_SQUARE_TO_ADD_TO;
+        EndDrawing();
+    }
+}
 
-                m_buttons["House"].m_unhovered_color = Fade(WHITE, 0.25f);
-                m_buttons["Factory"].m_unhovered_color = Fade(WHITE, 0.25f);
-                m_buttons["Park"].m_unhovered_color = Fade(WHITE, 0.25f);
-                box.m_unhovered_color = WHITE;
 
-                selected_building = const_cast<char*>(name);
+void Game::TriggerEvent(void) {
+    auto delta {
+        static_cast<int>(duration<double>(steady_clock::now() - m_current_time).count())
+    }; 
+
+    if (delta == Game::EVENT_TRIGGER_INTERVAL) {
+        m_current_time = steady_clock::now();
+        m_event_triggered = true;
+        m_event = Game::EVENT_LIST[Random::GenerateRandomInteger(0, Game::EVENT_LIST.size() - 1)];
+        std::println("[DEBUG] Event {}", std::to_underlying(m_event));
+
+        if (m_event == Event::NIGHT_TIME) {
+            for (auto& map: m_map) {
+                map.m_unhovered_color = Game::NIGHT_COLOR;
+            }
+        } else if (m_event == Event::DAY_TIME) {
+            for (auto& map: m_map) {
+                map.m_unhovered_color = Game::DAY_COLOR;
+            }
+        } else if (m_event == Event::BUILDINGS_PRODUCE_RESOURCES) {
+            for (auto& building: m_city.m_buildings) {
+                if (building.m_type == BuildingType::FACTORY) {
+                    m_city.m_total_water_quantity.m_quantity += 
+                        building.m_produced_water.m_quantity;
+                    m_city.m_total_electricity_quantity.m_quantity += 
+                        building.m_produced_electricity.m_quantity;
+                    m_city.m_total_pollution_rate += building.m_pollution_effect;
+                }
+            }
+        } else if (m_event == Event::BUILDINGS_CONSUME_RESOURCES) {
+            for (auto& building: m_city.m_buildings) {
+                m_city.m_total_water_quantity.m_quantity -= 
+                    building.m_consumed_water.m_quantity;
+                m_city.m_total_electricity_quantity.m_quantity -= 
+                    building.m_consumed_electricity.m_quantity;
+
+                if (m_city.m_total_water_quantity.m_quantity <= 0) {
+                    m_city.m_total_water_quantity.m_quantity = 0;
+                    m_city.m_total_satisfaction_rate -= Random::GenerateRandomInteger(100, 500);
+                }
+
+                if (m_city.m_total_water_quantity.m_quantity <= 0) {
+                    m_city.m_total_water_quantity.m_quantity = 0;
+                    m_city.m_total_satisfaction_rate -= Random::GenerateRandomInteger(100, 500);
+                }
+
+                if (m_city.m_total_satisfaction_rate <= 0) {
+                    m_city.m_total_satisfaction_rate = 0;
+                }
+
+                m_city.m_total_water_consumption.m_quantity += 
+                    building.m_consumed_water.m_quantity;
+                m_city.m_total_electricity_consumption.m_quantity += 
+                    building.m_consumed_electricity.m_quantity;
+            }
+        } else if (m_event == Event::BUILDINGS_INCREASE_SATISFACTION) {
+            for (auto& building: m_city.m_buildings) {
+                m_city.m_total_satisfaction_rate += building.m_satisfaction_effect;
+            }
+        } else if (m_event == Event::BUILDINGS_INCREASE_POLLUTION) {
+            for (auto& building: m_city.m_buildings) {
+                m_city.m_total_pollution_rate += building.m_pollution_effect;
+            }
+        } else if (m_event == Event::PARKS_DECREASE_POLLUTION) {
+            for (auto& building: m_city.m_buildings) {
+                if (building.m_type == BuildingType::PARK) {
+                    m_city.m_total_pollution_rate -= Random::GenerateRandomInteger(10, 1000);
+                    if (m_city.m_total_pollution_rate < 0) {
+                        m_city.m_total_pollution_rate = 0;
+                    }
+                }
+            }
+        } else if (m_event == Event::DESTROY_BUILDINGS) {
+            if (m_city.m_total_satisfaction_rate < 100) {
+                for (auto& [id, building_box]: m_building_boxes) {
+                    if (id != 0 && Random::GenerateRandomInteger(0, 1) == 1) {
+                        if (m_state == State::SELECT_SQUARE_TO_ADD_TO) {
+                            building_box.m_texture = Asset::PLUS_SIGN;
+                            building_box.m_hovered_color = WHITE;
+                            building_box.m_unhovered_color = Fade(WHITE, 0.25f);
+                        } else {
+                            building_box.m_texture = Texture2D();
+                            building_box.m_hovered_color = BLANK;
+                            building_box.m_unhovered_color = BLANK;
+                        }
+                        m_city.RemoveBuilding(id);
+                        id = 0;
+                    }
+                }
             }
         }
     }
-
-    
-
-    for (auto& [building, box]: m_building_boxes) {
-        if (box.IsHeld(relative_mouse_position, MOUSE_LEFT_BUTTON)) {
-            switch (m_mode) {
-                case Mode::SELECT_BUILDING_TO_ADD:
-                    break;
-                case Mode::SELECT_SQUARE_TO_ADD_TO:
-                    box.m_texture = Asset::BUILDING_TEXTURES[selected_building];
-                    box.m_unhovered_color = WHITE;
-                    box.m_hovered_color = SKYBLUE;
-                    building.m_id = ::g_building_id++;
-                    break;
-                case Mode::SELECT_SQUARE_TO_REMOVE_FROM:
-                    box.m_texture = Texture2D();
-                    box.m_hovered_color = BLANK;
-                    box.m_unhovered_color = BLANK;
-                    building.m_id = 0;
-                    break;
-                case Mode::SELECT_SQUARE_TO_VIEW:
-                    break;
-            }
-        }
-    }
-
-    RegulateCamera(m_camera_lower_bound, m_camera_upper_bound);
-    BeginDrawing();
-    ClearBackground(Game::DEFAULT_COLOR);
-    BeginMode2D(m_camera);
-    for (auto& box: m_map) {
-        box.Draw(mouse_position);
-    }
-
-    for (auto& [building, box]: m_building_boxes) {
-        box.Draw(relative_mouse_position);
-    }
-
-    EndMode2D();
-
-    for (auto& [name, button]: m_buttons) {
-        button.Draw(mouse_position);
-    }
-
-    EndDrawing();
 }
 
 void Game::GameLoop(void) {
@@ -407,6 +761,7 @@ void Game::GameLoop(void) {
     int lastTickAt = GetTickCount();
 
     while (!WindowShouldClose()) {
+        TriggerEvent();
         HandleInput();
         DrawCall();
 
@@ -428,8 +783,7 @@ void Game::GameLoop(void) {
     CloseWindow();
 }
 
-int Game::StartGame(void) {
+void Game::StartGame(void) {
     InitGame();
     GameLoop();
-    return 0;
 }

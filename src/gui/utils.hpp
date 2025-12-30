@@ -7,4 +7,10 @@
         return *this;                                                     \
     }                                                                     
 
+#include <raylib.h>
+#include <string>
+#include <vector>
+#include <print>
+
+
 #endif // UTILS_H
