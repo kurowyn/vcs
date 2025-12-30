@@ -162,17 +162,17 @@ void City::ModifyBuilding(i32 id, Building new_building) {
 
 void City::RemoveBuilding(i32 id) {
     for (auto it{m_buildings.begin()}; it != m_buildings.end(); ++it) {
-        if (it->m_id == id) {
-            ModifyPollutionLevel(-it->m_pollution_effect);
-            ModifySatisfactionLevel(-it->m_satisfaction_effect);
-            ModifyPopulation(-it->m_inhabitant_count);
-            m_consumed_water -= it->m_consumed_water;
-            m_consumed_electricity -= it->m_consumed_electricity;
-            m_produced_water -= it->m_produced_water;
-            m_produced_electricity -= it->m_produced_electricity;
-            m_buildings.erase(it);
-            break;
-        }
+        if (it->m_id != id) continue;
+
+        ModifyPollutionLevel(-it->m_pollution_effect);
+        ModifySatisfactionLevel(-it->m_satisfaction_effect);
+        ModifyPopulation(-it->m_inhabitant_count);
+        m_consumed_water -= it->m_consumed_water;
+        m_consumed_electricity -= it->m_consumed_electricity;
+        m_produced_water -= it->m_produced_water;
+        m_produced_electricity -= it->m_produced_electricity;
+        m_buildings.erase(it);
+        break;
     }
 }
 

@@ -230,24 +230,20 @@ void Game::HandleInput(void) {
         return;
     }
 
-    if (m_camera.zoom > 0) {
-        auto old_camera_zoom = m_camera.zoom;
-        if (IsKeyPressed(KEY_MINUS)) {
-            m_camera.zoom =
-                m_camera.zoom > 0 ? m_camera.zoom - 0.1f : m_camera.zoom;
-        } else if (IsKeyPressed(KEY_EQUAL)) {
-            m_camera.zoom += 0.1f;
-        }
-
-        m_camera.zoom += (GetMouseWheelMove() * 0.1f);
-
-        if (m_camera.zoom < 0) {
-            m_camera.zoom = old_camera_zoom;
-        }
-        return;
-    } else {
-        return;
+    if (m_camera.zoom <= 0) return auto old_camera_zoom = m_camera.zoom;
+    if (IsKeyPressed(KEY_MINUS)) {
+        m_camera.zoom =
+            m_camera.zoom > 0 ? m_camera.zoom - 0.1f : m_camera.zoom;
+    } else if (IsKeyPressed(KEY_EQUAL)) {
+        m_camera.zoom += 0.1f;
     }
+
+    m_camera.zoom += (GetMouseWheelMove() * 0.1f);
+
+    if (m_camera.zoom < 0) {
+        m_camera.zoom = old_camera_zoom;
+    }
+    return;
 }
 
 Rectangle Game::GenerateProtectiveRectangle(void) {
@@ -373,45 +369,47 @@ void Game::DrawCall(void) {
     }
 
     for (auto& [id, building_box] : m_building_boxes) {
-        if (building_box.IsClicked(m_relative_mouse_position,
-                                   MOUSE_LEFT_BUTTON) &&
-            !CheckCollisionPointRec(m_mouse_position, m_protective_rectangle)) {
-            switch (m_state) {
-                case State::SELECT_SQUARE_TO_VIEW:
-                    if (id != 0) {
-                        m_state = State::VIEWING_BUILDING;
-                        m_selected_square_id = id;
-                    }
-                    break;
-                case State::SELECT_SQUARE_TO_ADD_TO: {
-                    if (id == 0) {
-                        m_city.AddBuilding(
-                            Building(m_selected_building_icon_type));
-                        id = m_city.m_buildings.back().m_id;
-                        // there was a building
-                    } else {
-                        Building old_building{m_city.SearchBuilding(id)};
-                        m_city.ModifyBuilding(
-                            id, Building(Building::GenerateBuildingName(
-                                             m_selected_building_icon_type),
-                                         m_selected_building_icon_type,
-                                         old_building.m_id));
-                    }
+        bool isDown = building_box.IsClicked(m_relative_mouse_position,
+                                             MOUSE_LEFT_BUTTON);
+        bool isColliding =
+            CheckCollisionPointRec(m_mouse_position, m_protective_rectangle);
 
-                    building_box.m_texture =
-                        Asset::TEXTURE_MAP[m_selected_building_icon_type];
-                    building_box.m_unhovered_color = WHITE;
-                    building_box.m_hovered_color = SKYBLUE;
-                    break;
+        if (!(isDown && !isColliding)) continue;
+
+        switch (m_state) {
+            case State::SELECT_SQUARE_TO_VIEW:
+                if (id != 0) {
+                    m_state = State::VIEWING_BUILDING;
+                    m_selected_square_id = id;
                 }
-                case State::SELECT_SQUARE_TO_REMOVE_FROM: {
-                    m_city.RemoveBuilding(id);
-                    building_box.m_texture = Texture2D();
-                    building_box.m_hovered_color = BLANK;
-                    building_box.m_unhovered_color = BLANK;
-                    id = 0;
-                    break;
+                break;
+            case State::SELECT_SQUARE_TO_ADD_TO: {
+                if (id == 0) {
+                    m_city.AddBuilding(Building(m_selected_building_icon_type));
+                    id = m_city.m_buildings.back().m_id;
+                    // there was a building
+                } else {
+                    Building old_building{m_city.SearchBuilding(id)};
+                    m_city.ModifyBuilding(
+                        id, Building(Building::GenerateBuildingName(
+                                         m_selected_building_icon_type),
+                                     m_selected_building_icon_type,
+                                     old_building.m_id));
                 }
+
+                building_box.m_texture =
+                    Asset::TEXTURE_MAP[m_selected_building_icon_type];
+                building_box.m_unhovered_color = WHITE;
+                building_box.m_hovered_color = SKYBLUE;
+                break;
+            }
+            case State::SELECT_SQUARE_TO_REMOVE_FROM: {
+                m_city.RemoveBuilding(id);
+                building_box.m_texture = Texture2D();
+                building_box.m_hovered_color = BLANK;
+                building_box.m_unhovered_color = BLANK;
+                id = 0;
+                break;
             }
         }
     }
@@ -567,9 +565,7 @@ void Game::DrawCall(void) {
             auto time_elapsed{static_cast<int>(
                 duration<double>(steady_clock::now() - m_current_time)
                     .count())};
-            if (time_elapsed == 5) {
-                m_event_triggered = false;
-            }
+            if (time_elapsed == 5) m_event_triggered = false;
         }
 
         EndDrawing();
@@ -591,9 +587,8 @@ void Game::TriggerEvent(void) {
                 map.m_unhovered_color = Game::NIGHT_COLOR;
             }
         } else if (m_event == Event::DAY_TIME) {
-            for (auto& map : m_map) {
-                map.m_unhovered_color = Game::DAY_COLOR;
-            }
+            for (auto& map : m_map) map.m_unhovered_color = Game::DAY_COLOR;
+
         } else if (m_event == Event::BUILDINGS_PRODUCE_RESOURCES) {
             m_city.ProduceResources();
         } else if (m_event == Event::BUILDINGS_CONSUME_RESOURCES) {
@@ -607,12 +602,11 @@ void Game::TriggerEvent(void) {
                 m_city.m_pollution_level += building.m_pollution_effect;
             }
         } else if (m_event == Event::PARKS_DECREASE_POLLUTION) {
-            for (auto& building : m_city.m_buildings) {
+            for (auto& building : m_city.m_buildings)
                 if (building.m_type == BuildingType::PARK) {
                     m_city.ModifyPollutionLevel(
                         -Random::GenerateRandomInteger(10, 1000));
                 }
-            }
         } else if (m_event == Event::DESTROY_BUILDINGS) {
             if (m_city.m_satisfaction_level < 100) {
                 for (auto& [id, building_box] : m_building_boxes) {
