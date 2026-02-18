@@ -12,6 +12,7 @@ Resource operator+(Resource r1, Resource r2) {
     if (r1.m_type == r2.m_type && r1.m_unit == r2.m_unit) {
         return Resource(r1.m_type, r1.m_unit, r1.m_quantity + r2.m_quantity);
     }
+    return Resource(ResourceType::NONE, Unit::NONE, 0);
 }
 
 Resource operator-(Resource r1, Resource r2) {
@@ -21,6 +22,7 @@ Resource operator-(Resource r1, Resource r2) {
                             ? r1.m_quantity - r2.m_quantity
                             : 0);
     }
+    return Resource(ResourceType::NONE, Unit::NONE, 0);
 }
 
 Resource operator+=(Resource& r1, Resource r2) {
@@ -28,11 +30,12 @@ Resource operator+=(Resource& r1, Resource r2) {
         r1.m_quantity = r1.m_quantity + r2.m_quantity;
         return Resource(r1.m_type, r1.m_unit, r1.m_quantity + r2.m_quantity);
     }
+    return r1;
 }
 
 Resource operator-=(Resource& r1, Resource r2) {
     if (r1.m_type == r2.m_type && r1.m_unit == r2.m_unit) {
-        r2.m_quantity = r1.m_quantity - r2.m_quantity >= 0
+        r1.m_quantity = r1.m_quantity - r2.m_quantity >= 0
                             ? r1.m_quantity - r2.m_quantity
                             : 0;
         return Resource(r1.m_type, r1.m_unit,
@@ -40,6 +43,7 @@ Resource operator-=(Resource& r1, Resource r2) {
                             ? r1.m_quantity - r2.m_quantity
                             : 0);
     }
+    return r1;
 }
 
 Building::Building(string name, string type, i32 id) {
@@ -128,11 +132,8 @@ void City::ModifySatisfactionLevel(i32 satisfaction_level) {
 City::City(string name) { m_name = name; }
 
 City::City(void) {
-    static std::array random_adjectives{"Beautiful", "Amazing", "Great",
-                                        "Wonderful", "Ordinary"};
-    m_name =
-        std::format("{} City", random_adjectives[Random::GenerateRandomInteger(
-                                   0, random_adjectives.size() - 1)]);
+    static std::array random_adjectives{"Beautiful", "Amazing", "Great", "Wonderful", "Ordinary"};
+    m_name = std::format("{} City", random_adjectives[Random::GenerateRandomInteger( 0, random_adjectives.size() - 1)]);
     m_consumed_water = Resource(ResourceType::WATER, Unit::LITER, 0);
     m_consumed_electricity = Resource(ResourceType::ELECTRICITY, Unit::WATT, 0);
     m_produced_water = Resource(ResourceType::WATER, Unit::LITER, 0);
@@ -163,7 +164,6 @@ void City::ModifyBuilding(i32 id, Building new_building) {
 void City::RemoveBuilding(i32 id) {
     for (auto it{m_buildings.begin()}; it != m_buildings.end(); ++it) {
         if (it->m_id != id) continue;
-
         ModifyPollutionLevel(-it->m_pollution_effect);
         ModifySatisfactionLevel(-it->m_satisfaction_effect);
         ModifyPopulation(-it->m_inhabitant_count);

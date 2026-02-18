@@ -5,7 +5,6 @@
 
 #include "utils.hpp"
 
-// It's slightly less horrible, now.
 struct Box {
     Texture2D m_texture;
     Rectangle m_rectangle{};

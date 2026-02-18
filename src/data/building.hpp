@@ -18,23 +18,23 @@ Resource operator+=(Resource& r1, Resource r2);
 Resource operator-=(Resource& r1, Resource r2);
 
 namespace BuildingType {
-constexpr string HOUSE = "House";
-constexpr string FACTORY = "Factory";
-constexpr string PARK = "Park";
-constexpr string NONE = "NONE";
-};  // namespace BuildingType
+    constexpr string HOUSE = "House";
+    constexpr string FACTORY = "Factory";
+    constexpr string PARK = "Park";
+    constexpr string NONE = "NONE";
+};  
 
 namespace ResourceType {
-constexpr string WATER = "Water";
-constexpr string ELECTRICITY = "Electricity";
-constexpr string NONE = "NONE";
-};  // namespace ResourceType
+    constexpr string WATER = "Water";
+    constexpr string ELECTRICITY = "Electricity";
+    constexpr string NONE = "NONE";
+};  
 
 namespace Unit {
-constexpr string LITER = "Liter";
-constexpr string WATT = "Watt";
-constexpr string NONE = "NONE";
-};  // namespace Unit
+    constexpr string LITER = "Liter";
+    constexpr string WATT = "Watt";
+    constexpr string NONE = "NONE";
+};  
 
 class Building {
    public:

@@ -2,9 +2,9 @@
 
 std::vector<Building> g_buildings{};
 
-int Game::EVENT_TRIGGER_INTERVAL = 60;
+i32 Game::EVENT_TRIGGER_INTERVAL = 60;
 std::string Game::GAME_TITLE{"vcs - a minimal city simulator"};
-int Game::FPS{120};
+i32 Game::FPS{120};
 Color Game::BACKGROUND_COLOR{17, 63, 42, 255};
 Color Game::NIGHT_COLOR{70, 82, 125, 255};
 Color Game::DAY_COLOR{WHITE};
@@ -18,7 +18,7 @@ std::vector<Event> Game::EVENT_LIST{Event::NIGHT_TIME,
                                     Event::BUILDINGS_INCREASE_POLLUTION,
                                     Event::DESTROY_BUILDINGS};
 
-Game::Game(float width, float height) {
+Game::Game(f32 width, f32 height) {
     m_width = width;
     m_height = height;
     m_camera_move_speed = 5.0f;
@@ -31,7 +31,7 @@ Game::Game(float width, float height) {
     m_selected_building_icon_type = "None";
 }
 
-Game::Game(int width, int height) : Game((float)width, (float)height) {}
+Game::Game(i32 width, i32 height): Game((f32)width, (f32)height) {}
 
 Game::Game(void) : Game(GetScreenWidth(), GetScreenHeight()) {}
 
@@ -39,6 +39,7 @@ void Game::InitGame(void) {
     InitWindow(m_width, m_height, Game::GAME_TITLE.c_str());
     SetExitKey(KEY_NULL);
     SetConfigFlags(FLAG_VSYNC_HINT);
+    SetWindowState(FLAG_FULLSCREEN_MODE);
     SetTargetFPS(Game::FPS);
     PositionAssets();
     m_protective_rectangle = GenerateProtectiveRectangle();
@@ -52,8 +53,8 @@ void Game::PositionAssets(void) {
             .with_texture(Asset::CITY_FIELD)
             .with_rectangle(Rectangle{.x = 0,
                                       .y = 0,
-                                      .width = Asset::CITY_FIELD.width,
-                                      .height = Asset::CITY_FIELD.height})
+                                      .width = (f32)Asset::CITY_FIELD.width,
+                                      .height =(f32)Asset::CITY_FIELD.height})
             .with_is_hoverable(false)
             .with_hovered_color(BLANK)
             .with_unhovered_color(WHITE));
@@ -119,8 +120,8 @@ void Game::PositionAssets(void) {
         std::get<Box>(button).m_rectangle =
             Rectangle{.x = button_position.x,
                       .y = button_position.y,
-                      .width = std::get<Box>(button).m_texture.width,
-                      .height = std::get<Box>(button).m_texture.height};
+                      .width = (f32)std::get<Box>(button).m_texture.width,
+                      .height = (f32)std::get<Box>(button).m_texture.height};
     }
 
     for (auto& button : m_building_buttons) {
@@ -129,8 +130,8 @@ void Game::PositionAssets(void) {
         std::get<Box>(button).m_rectangle =
             Rectangle{.x = button_position.x,
                       .y = button_position.y,
-                      .width = std::get<Box>(button).m_texture.width,
-                      .height = std::get<Box>(button).m_texture.height};
+                      .width = (f32)std::get<Box>(button).m_texture.width,
+                      .height =(f32)std::get<Box>(button).m_texture.height};
     }
 
     for (auto row{0}; row < m_row_count; ++row) {
@@ -176,6 +177,8 @@ void Game::RegulateCamera(void) {
 }
 
 void Game::HandleInput(void) {
+    auto old_camera_zoom = m_camera.zoom;
+
     if (IsKeyPressed(KEY_F11)) {
         ToggleFullscreen();
         return;
@@ -230,10 +233,8 @@ void Game::HandleInput(void) {
         return;
     }
 
-    if (m_camera.zoom <= 0) return auto old_camera_zoom = m_camera.zoom;
     if (IsKeyPressed(KEY_MINUS)) {
-        m_camera.zoom =
-            m_camera.zoom > 0 ? m_camera.zoom - 0.1f : m_camera.zoom;
+        m_camera.zoom = m_camera.zoom > 0 ? m_camera.zoom - 0.1f : m_camera.zoom;
     } else if (IsKeyPressed(KEY_EQUAL)) {
         m_camera.zoom += 0.1f;
     }
@@ -243,25 +244,22 @@ void Game::HandleInput(void) {
     if (m_camera.zoom < 0) {
         m_camera.zoom = old_camera_zoom;
     }
+
     return;
 }
 
 Rectangle Game::GenerateProtectiveRectangle(void) {
     Rectangle rectangle{};
-    rectangle.x =
-        m_width - (std::get<Box>(m_building_buttons.back()).m_texture.width +
-                   Asset::BUTTON_PADDING);
+    rectangle.x = m_width - (std::get<Box>(m_building_buttons.back()).m_texture.width + Asset::BUTTON_PADDING);
     rectangle.y = m_height;
     rectangle.width = m_width - rectangle.x;
 
     for (auto& button : m_buttons) {
-        rectangle.y -=
-            std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
+        rectangle.y -= std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
     }
 
     for (auto& button : m_building_buttons) {
-        rectangle.y -=
-            std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
+        rectangle.y -= std::get<Box>(button).m_texture.height + Asset::BUTTON_PADDING;
     }
 
     rectangle.height = m_height - rectangle.y;
@@ -274,8 +272,7 @@ void Game::DrawCall(void) {
     m_relative_mouse_position = GetScreenToWorld2D(m_mouse_position, m_camera);
 
     // city button
-    if (std::get<Box>(m_buttons[3])
-            .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+    if (std::get<Box>(m_buttons[3]) .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
         m_state = State::VIEWING_CITY_INFORMATION;
         for (auto& [type, building_button] : m_building_buttons) {
             building_button.m_unhovered_color = BLANK;
@@ -291,8 +288,7 @@ void Game::DrawCall(void) {
                 building.m_hovered_color = WHITE;
             }
         }
-    } else if (std::get<Box>(m_buttons[2])
-                   .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+    } else if (std::get<Box>(m_buttons[2]) .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
         m_state = State::SELECT_BUILDING_TO_ADD;
         for (auto& [type, building_button] : m_building_buttons) {
             building_button.m_unhovered_color = Fade(WHITE, 0.25f);
@@ -310,8 +306,7 @@ void Game::DrawCall(void) {
             }
         }
         // remove button
-    } else if (std::get<Box>(m_buttons[1])
-                   .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+    } else if (std::get<Box>(m_buttons[1]) .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
         m_state = State::SELECT_SQUARE_TO_REMOVE_FROM;
         for (auto& [type, building_button] : m_building_buttons) {
             building_button.m_unhovered_color = BLANK;
@@ -330,8 +325,7 @@ void Game::DrawCall(void) {
         }
         m_selected_building_icon_type = "None";
         // view button
-    } else if (std::get<Box>(m_buttons[0])
-                   .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
+    } else if (std::get<Box>(m_buttons[0]) .IsClicked(m_mouse_position, MOUSE_LEFT_BUTTON)) {
         m_state = State::SELECT_SQUARE_TO_VIEW;
         for (auto& [type, building_button] : m_building_buttons) {
             building_button.m_unhovered_color = BLANK;
@@ -369,10 +363,8 @@ void Game::DrawCall(void) {
     }
 
     for (auto& [id, building_box] : m_building_boxes) {
-        bool isDown = building_box.IsClicked(m_relative_mouse_position,
-                                             MOUSE_LEFT_BUTTON);
-        bool isColliding =
-            CheckCollisionPointRec(m_mouse_position, m_protective_rectangle);
+        bool isDown = building_box.IsClicked(m_relative_mouse_position, MOUSE_LEFT_BUTTON);
+        bool isColliding = CheckCollisionPointRec(m_mouse_position, m_protective_rectangle);
 
         if (!(isDown && !isColliding)) continue;
 
@@ -397,8 +389,7 @@ void Game::DrawCall(void) {
                                      old_building.m_id));
                 }
 
-                building_box.m_texture =
-                    Asset::TEXTURE_MAP[m_selected_building_icon_type];
+                building_box.m_texture = Asset::TEXTURE_MAP[m_selected_building_icon_type];
                 building_box.m_unhovered_color = WHITE;
                 building_box.m_hovered_color = SKYBLUE;
                 break;
@@ -424,11 +415,9 @@ void Game::DrawCall(void) {
         ClearBackground(Color(70, 77, 79, 255));
 
         Building selected_building{m_city.SearchBuilding(m_selected_square_id)};
-        Texture2D selected_building_texture{
-            Asset::TEXTURE_MAP[selected_building.m_type]};
+        Texture2D selected_building_texture{Asset::TEXTURE_MAP[selected_building.m_type]};
 
-        DrawTextEx(Asset::DEFAULT_FONT, "BUILDING INFORMATION", Vector2(10, 10),
-                   40, 1.5f, LIME);
+        DrawTextEx(Asset::DEFAULT_FONT, "BUILDING INFORMATION", Vector2(10, 10), 40, 1.5f, LIME);
 
         DrawTextureV(selected_building_texture, {60, 90}, WHITE);
 
@@ -458,10 +447,9 @@ void Game::DrawCall(void) {
                         selected_building.m_produced_electricity.m_unit)};
 
         for (auto i{0}; i < building_information_strings.size(); ++i) {
-            DrawTextEx(
-                Asset::DEFAULT_FONT, building_information_strings[i].c_str(),
-                Vector2(selected_building_texture.width + 40, 70 + 40 * i), 40,
-                1.5f, WHITE);
+            DrawTextEx(Asset::DEFAULT_FONT, building_information_strings[i].c_str(),
+                       Vector2(selected_building_texture.width + 40, 70 + 40 * i), 40,
+                       1.5f, WHITE);
         }
 
         DrawTextEx(Asset::DEFAULT_FONT, "Press ESC or right click to go back!",

@@ -27,8 +27,6 @@ enum class State {
     VIEWING_BUILDING,
 };
 
-// And that should be more than enough.
-// Then, we implement the "show city details" button, and that. is. all.
 enum class Event {
     NIGHT_TIME,
     DAY_TIME,
@@ -44,27 +42,27 @@ enum class Event {
 class Game {
    public:
     static std::string GAME_TITLE;
-    static int FPS;
+    static i32 FPS;
     static Color BACKGROUND_COLOR;
     static Color NIGHT_COLOR;
     static Color DAY_COLOR;
-    static int EVENT_TRIGGER_INTERVAL;
+    static i32 EVENT_TRIGGER_INTERVAL;
     static std::vector<Event> EVENT_LIST;
 
     time_point<steady_clock> m_current_time{};
     bool m_event_triggered{};
-    int m_column_count{};
-    int m_row_count{};
+    i32 m_column_count{};
+    i32 m_row_count{};
     Vector2 m_mouse_position{};
     Vector2 m_relative_mouse_position{};
     Rectangle m_protective_rectangle{};
-    int m_selected_square_id{};
+    i32 m_selected_square_id{};
 
     City m_city{};
     Event m_event{};
 
     std::vector<Box> m_map{};
-    std::vector<std::tuple<int, Box>> m_building_boxes{};
+    std::vector<std::tuple<i32, Box>> m_building_boxes{};
     std::vector<std::tuple<std::string, Box>> m_buttons{};
     std::vector<std::tuple<std::string, Box>> m_building_buttons{};
 
@@ -74,12 +72,12 @@ class Game {
     Vector2 m_camera_upper_bound{};
     Camera2D m_camera{};
     State m_state{};
-    float m_camera_move_speed{};
-    float m_width{};
-    float m_height{};
+    f32 m_camera_move_speed{};
+    f32 m_width{};
+    f32 m_height{};
 
-    Game(float width, float height);
-    Game(int width, int height);
+    Game(f32 width, f32 height);
+    Game(i32 width, i32 height);
     Game(void);
     Rectangle GenerateProtectiveRectangle(void);
     void PositionAssets(void);
