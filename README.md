@@ -1,3 +1,9 @@
 # To build:
-Just run the bash script in the `build` directory.
-More portable solution coming soon.
+
+## Windows
+Run ```build/run.bat```.
+
+## GNU/Linux
+Run ```build/run.bash```.
+
+Make sure you have raylib installed.
